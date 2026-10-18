@@ -1,44 +1,33 @@
-# 7.1.1 — 2026-10-08
-
-- Serialized, revision-aware sync and account-scoped pending changes.
-- Cloud/demo cache isolation and deferred Auth callbacks.
-- Stable edited IDs, corrected core moves, safer upload/import flows.
-- Data-driven linked roadmap; hidden empty sections; optional resources disclosure.
-- Quieter cards, visible focus, labelled fields, modal keyboard support and responsive fixes.
-- External page scripts and stricter CSP; published-only fallback build; reject secret config keys.
-- Regression QA and 56 Chromium page/viewport checks. Live backend not yet verified.
-
 # Changelog
 
-## v7.1 — production hardening
+## v3.2.1-p0-preview — Article source privacy and SSR navigation
+- Added additive Supabase P0 RLS patch limiting raw article reads to owners and reviewers; public reviewed snapshots stay accessible. **Not applied to live DB.**
+- Aligned SSR article list/detail navigation to four V7.5 primary destinations through a shared server helper.
+- Fixed empty canonical/cover/OG URL fallback in article renderer.
+- Added explicit SQL validation, navigation/security regression QA and Chromium SSR mobile smoke QA.
+- No changes to underlying learning catalog, roles, media upload workflow or Article Studio content model.
 
-- Added production `dist/` build with environment-driven Supabase configuration; backend SQL/docs/dev tools are excluded from the deployed bundle.
-- Migrated runtime configuration to modern Supabase publishable keys while keeping a legacy fallback only for compatibility.
-- Pinned `@supabase/supabase-js` to 2.117.2 instead of a floating major CDN tag.
-- Hardened Postgres/RLS grants, helper-function exposure, private Storage policies and URL/access constraints.
-- Added database integrity checks for Core Book publication state and parent/child Book/Resource consistency.
-- Replaced destructive full-snapshot/archive sync behavior with changed-row upserts and explicit Archive actions.
-- Added persistent pending-sync recovery: offline edits survive reload/reconnect, retry against a fresh remote base, and preserve untouched remote entities.
-- Added unsynced-change exit protection and online/offline feedback in Admin.
-- Hardened Import validation so invalid external URLs cannot bypass the editor.
-- Added Vercel/portable security headers, production cache policy, web manifest and optional generated sitemap.
-- Added repeatable static/content QA plus a post-deploy SQL integrity check.
-- Revalidated official starter links and replaced three stale Hueber URLs.
 
-## v7 — multi-book + special collection + mobile access
+## v3.2.0-preview — V7.5 navigation & mobile authoring polish
+- Restored exactly four learner navigation destinations; Articles is discoverable from Extras.
+- Added mobile table builder, internal content link picker, link edit/unlink, image alt/caption edit, H4 and underline.
+- Fixed article metadata loss when reopening drafts and the SEO image-alt false positive.
+- Added offline mocked browser checks at 320/390/768/1024 px; no Supabase production migration.
 
-- Chose v6 as the architectural base after comparing all three supplied project versions.
-- Added a first-class `collection` model: `level` or `special`.
-- Added multiple book packages per CEFR level instead of exposing only the core course.
-- Added a dedicated Special Books page for cross-level or uncategorized books.
-- Reworked level-page hierarchy to: Level header → compact roadmap → Core Book → Other Books → Skill Practice → Recommendations.
-- Added fast mobile bottom navigation to learner pages.
-- Rebuilt admin workflows around mobile editing, contextual book/resource forms, Draft-first publishing and collection-aware filters.
-- Added validation for mismatched resource/book contexts and empty published books.
-- Updated Supabase schema with nullable CEFR level for special books, collection constraints and server-side context validation.
-- Replaced placeholder / dead public resources with curated official links where available.
-- Removed learner-app scope creep: no public progress, notes, vocabulary tracking or lesson engine.
 
-## v6
+## v3.1.0 — VNext Article Studio & SEO Platform
+- Replaced public four-destination navigation with five requested destinations and article active states.
+- Added crawlable Vercel-rendered article directory, article pages, canonical/OG/Twitter metadata, JSON-LD, sitemap, 404 and slug redirects.
+- Added learner self-signup and a secure author application queue with Admin approval/rejection, alongside the Author/Editor workflow, own-article Studio, autosave, revision recovery, private preview and live SEO checklist.
+- Added additive RLS migration for article snapshots, revision history, private draft asset policies, resource permissions and Admin-only audited Author assignment.
+- Added QA for raw HTML security and article routes.
+- Not live-tested or deployed: the Supabase migration, Vercel Functions and Production data/security were not changed.
 
-- Mobile-first static/Supabase architecture, admin, RLS, private storage, content health and publishing states.
+## v3.0.0 — German Library v3
+Based on the V7.4 books/media/featured source.
+- Rebuilt public bottom navigation around Levels, Supplemental, Home, Books.
+- Added Levels index page and categorized horizontal book shelves with featured books at top.
+- Extended admin book editor and local data normalization with category, skills, cover, download and uploaded book file metadata.
+- Added metadata migration for existing Supabase courses; reused existing RLS and signed storage infrastructure.
+- Added a version-specific QA script and release checklist.
+- Retained original resources, course assets and all original catalog entries.

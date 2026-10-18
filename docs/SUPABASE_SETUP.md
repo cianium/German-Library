@@ -34,7 +34,7 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 SITE_URL=https://your-domain.example
 ```
 
-`npm run build` writes these public client values into `dist/assets/config.js` and does not modify the source config.
+`npm run build` writes these public client values into `dist/assets/runtime-config.js` and does not modify the source config.
 
 ## 5. Staff access
 
@@ -78,3 +78,8 @@ Then use Supabase Security/Performance Advisors and verify:
 ## 8. Migration note
 
 The schema contains compatibility changes for the prior v6/v7 model, but a fresh dedicated production database is preferred for the first public release. Always back up an existing production database before applying migrations.
+
+
+## P0 Security Patch — 2026-10-15
+
+پس از Migration اصلی مقالات (`backend/migrations/20261014_vnext_articles.sql`) باید `backend/migrations/20261015_p0_article_source_read_access.sql` اجرا شود. این Patch دسترسی به رکورد خام نسخه‌های تأییدنشده را برای کاربران واردشده محدود می‌کند. سپس `backend/validation/p0_article_access_check.sql` را اجرا کرده و ماتریس واقعی نقش‌ها را مطابق `docs/P0_SECURITY_AND_NAV_REPORT_FA.md` آزمایش کن. وجود سورس Patch به معنی تغییر دیتابیس جاری نیست.

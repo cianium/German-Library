@@ -2,3 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /login.html
+Disallow: /article-studio.html
+Disallow: /article-preview.html
+Disallow: /api/

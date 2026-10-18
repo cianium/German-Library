@@ -14,7 +14,7 @@
   const isCloudMode=()=>Boolean(client&&configured());
   const currentUser=()=>user;
   const currentRole=()=>role;
-  const isStaff=()=>['admin','editor'].includes(role);
+  const isStaff=()=>['admin','editor','author'].includes(role);
   const emit=(name,detail={})=>document.dispatchEvent(new CustomEvent(name,{detail}));
 
   function normalizeTouched(raw={}){
@@ -56,7 +56,7 @@
   }
   function rowsToContent(rows){
     const levels={};(rows.levels||[]).forEach(l=>levels[l.code]={code:l.code,titleFa:l.title_fa||'',titleEn:l.title_en||'',description:l.description||'',coreCourseId:null,order:l.sort_order||1});
-    const courses=(rows.courses||[]).map(c=>({id:c.id,title:c.title,collection:c.collection||'level',level:c.level_code||'',description:c.description||'',order:c.order_index||1,status:c.status||'published'}));
+    const courses=(rows.courses||[]).map(c=>({id:c.id,title:c.title,collection:c.collection||'level',level:c.level_code||'',description:c.description||'',order:c.order_index||1,status:c.status||'published',featured:Boolean(c.featured ?? (c.collection==='special')),bookType:c.book_type||'Sonstige',skills:c.skills||[],coverUrl:c.cover_url||'',coverStoragePath:c.cover_storage_path||'',url:c.book_url||'',storagePath:c.book_storage_path||'',provider:c.provider||''}));
     (rows.courses||[]).forEach(c=>{if(c.is_core&&c.level_code&&levels[c.level_code])levels[c.level_code].coreCourseId=c.id});
     const resources=(rows.resources||[]).map(r=>({id:r.id,title:r.title,description:r.description||'',collection:r.collection||'level',level:r.level_code||'',courseId:r.course_id||'',type:r.type||'Website',skill:r.skill||'Extra Practice',priority:r.priority||'recommended',provider:r.provider||'',url:r.source_url||r.media_url||'',storagePath:r.source_storage_path||r.media_storage_path||'',pricing:r.pricing||'unknown',featured:Boolean(r.featured),status:r.status||'published',order:r.order_index||1,durationMinutes:Number(r.duration_minutes)||0,linkStatus:r.link_status||'unknown',verifiedAt:r.verified_at||''}));
     return window.GL.normalizeContent({meta:{version:7,source:'supabase'},levels,courses,resources});
@@ -74,8 +74,8 @@
 
   function contentRows(content){
     const levels=Object.values(content.levels).map((l,i)=>({code:l.code,title_fa:l.titleFa||'',title_en:l.titleEn||'',description:l.description||'',sort_order:l.order||i+1}));
-    const courses=content.courses.map(x=>({id:x.id,collection:x.collection,level_code:x.collection==='level'?x.level:null,title:x.title,description:x.description||'',is_core:x.collection==='level'&&content.levels[x.level]?.coreCourseId===x.id,order_index:x.order||1,status:x.status||'published'}));
-    const resources=content.resources.map(r=>({id:r.id,collection:r.collection,level_code:r.collection==='level'?r.level:null,course_id:r.courseId||null,title:r.title,description:r.description||'',type:r.type,skill:r.skill,priority:r.priority,provider:r.provider||'',source_url:r.url||'',source_storage_path:r.storagePath||'',pricing:r.pricing||'unknown',featured:Boolean(r.featured),duration_minutes:Number(r.durationMinutes)||0,link_status:r.linkStatus||'unknown',verified_at:r.verifiedAt||null,order_index:r.order||1,status:r.status||'published'}));
+    const courses=content.courses.map(x=>({id:x.id,collection:x.collection,level_code:x.level||null,title:x.title,description:x.description||'',featured:Boolean(x.featured),is_core:['level','library'].includes(x.collection)&&content.levels[x.level]?.coreCourseId===x.id,order_index:x.order||1,status:x.status||'published',book_type:x.bookType||'Sonstige',skills:x.skills||[],cover_url:x.coverUrl||'',cover_storage_path:x.coverStoragePath||'',book_url:x.url||'',book_storage_path:x.storagePath||'',provider:x.provider||''}));
+    const resources=content.resources.map(r=>({id:r.id,collection:r.collection,level_code:r.level||null,course_id:r.courseId||null,title:r.title,description:r.description||'',type:r.type,skill:r.skill,priority:r.priority,provider:r.provider||'',source_url:r.url||'',source_storage_path:r.storagePath||'',pricing:r.pricing||'unknown',featured:Boolean(r.featured),duration_minutes:Number(r.durationMinutes)||0,link_status:r.linkStatus||'unknown',verified_at:r.verifiedAt||null,order_index:r.order||1,status:r.status||'published'}));
     return{levels,courses,resources};
   }
   const changedRows=(next,prev,key)=>{const old=new Map((prev||[]).map(row=>[row[key],JSON.stringify(row)]));return next.filter(row=>old.get(row[key])!==JSON.stringify(row))};
@@ -123,13 +123,19 @@
     const c=ensureClient();if(!c)throw new Error('Supabase تنظیم نشده است.');
     const q=await c.auth.signInWithPassword({email,password});if(q.error)throw q.error;user=q.data.user;await refreshAuth();hydrated=false;await hydrate();return{user,role};
   }
+  async function signUp(email,password,displayName=''){
+    const c=ensureClient();if(!c)throw new Error('Supabase تنظیم نشده است.');
+    const q=await c.auth.signUp({email,password,options:{data:{full_name:String(displayName||'').trim()}}});if(q.error)throw q.error;
+    if(q.data.session){user=q.data.user;await refreshAuth()}
+    return q.data;
+  }
   async function signOut(){
     const c=ensureClient();if(c){const q=await c.auth.signOut();if(q.error)throw q.error}
     clearTimeout(syncTimer);signedCache.clear();window.GL.clearCloudContent?.();user=null;role='guest';hydrated=false;lastCloudContent=null;setStatus('ready');
   }
   async function requireStaff(){
     await refreshAuth();if(!isCloudMode())return !configured()&&demoAllowed()?{allowed:true,demo:true,role:'demo'}:{allowed:false,reason:'config',role:'guest'};
-    if(!user)return{allowed:false,reason:'login',role:'guest'};if(!isStaff())return{allowed:false,reason:'role',role};return{allowed:true,demo:false,role};
+    if(!user)return{allowed:false,reason:'login',role:'guest'};if(!isStaff())return{allowed:false,reason:'role',role};return{allowed:true,demo:false,role,canManageRoles:role==='admin',canReviewArticles:['admin','editor'].includes(role),canManageResources:true};
   }
 
   async function syncContentSnapshot(raw,options={}){
@@ -211,5 +217,5 @@
     });
     window.addEventListener('online',()=>{if(isStaff()&&pendingExists())retryPendingSync().catch(e=>setStatus('error',e?.message||String(e)))});
   }
-  window.GLBackend={BUCKET,configured,demoAllowed,isCloudMode,currentUser,currentRole,isStaff,getStatus,hydrate,refreshAuth,requireStaff,signIn,signOut,scheduleContentSync,syncContentSnapshot,forceSync,retryPendingSync,uploadResourceFile,deleteStorageObject,resolveResourceUrl,signedUrl};
+  window.GLBackend={BUCKET,configured,demoAllowed,isCloudMode,currentUser,currentRole,isStaff,getClient:ensureClient,getStatus,hydrate,refreshAuth,requireStaff,signIn,signUp,signOut,scheduleContentSync,syncContentSnapshot,forceSync,retryPendingSync,uploadResourceFile,deleteStorageObject,resolveResourceUrl,signedUrl};
 })();

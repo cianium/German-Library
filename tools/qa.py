@@ -6,6 +6,8 @@ import re, sys, json, subprocess, tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]; warnings=[]
+vercel=json.loads((ROOT/'vercel.json').read_text(encoding='utf-8'))
+rewritten={x.get('source') for x in vercel.get('rewrites',[])}
 
 class Parser(HTMLParser):
     def __init__(self):
@@ -39,7 +41,7 @@ for f in sorted(ROOT.glob('*.html')):
         try: target.relative_to(ROOT.resolve())
         except ValueError:
             errors.append(f'{f.name}: local path escapes project: {val}'); continue
-        if u.path and not target.exists(): errors.append(f'{f.name}: missing local target: {val}')
+        if u.path and not target.exists() and ('/'+u.path.lstrip('/')) not in rewritten: errors.append(f'{f.name}: missing local target: {val}')
     if '@supabase/supabase-js@2"></script>' in text or '@supabase/supabase-js@2\'' in text:
         errors.append(f'{f.name}: Supabase SDK is not pinned to an exact version')
     if re.search(r'<script(?:\s[^>]*)?>\s*[^<\s]',text,re.I): errors.append(f'{f.name}: inline script violates CSP')
@@ -68,9 +70,9 @@ if css.count('{')!=css.count('}'): errors.append('assets/styles.css: unbalanced 
 if ':focus-visible' not in css: errors.append('assets/styles.css: visible keyboard focus rule missing')
 if 'prefers-reduced-motion' not in css: warnings.append('assets/styles.css: reduced-motion rule missing')
 
-cfg=(ROOT/'assets/config.js').read_text(encoding='utf-8')
-if re.search(r'(service[_-]?role|sb_secret_)[A-Za-z0-9._-]{8,}',cfg,re.I): errors.append('assets/config.js: secret/service-role key appears to be present')
-if 'supabasePublishableKey' not in cfg: errors.append('assets/config.js: modern publishable-key field missing')
+cfg=(ROOT/'assets/runtime-config.js').read_text(encoding='utf-8')
+if re.search(r'(service[_-]?role|sb_secret_)[A-Za-z0-9._-]{8,}',cfg,re.I): errors.append('assets/runtime-config.js: secret/service-role key appears to be present')
+if 'supabasePublishableKey' not in cfg: errors.append('assets/runtime-config.js: modern publishable-key field missing')
 
 manifest=json.loads((ROOT/'site.webmanifest').read_text(encoding='utf-8'))
 if manifest.get('display')!='standalone': warnings.append('site.webmanifest: display is not standalone')

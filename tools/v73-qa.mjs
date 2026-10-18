@@ -1,0 +1,30 @@
+/* V7.3 release regression: validate IA partition, shared navigation and admin surfaces. */
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const root=path.resolve(import.meta.dirname,'..');
+const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const window={};const storage={};
+const sandbox={window,document:{addEventListener:()=>{}},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v,removeItem:k=>delete storage[k]},location:{search:''},URLSearchParams,console};
+vm.runInNewContext(read('data/content.js'),sandbox);
+vm.runInNewContext(read('assets/app.js'),sandbox);
+const GL=window.GL,content=GL.getContent();
+assert.equal(content.courses.length,4);assert.equal(content.resources.length,35);
+assert.equal(GL.getLibraryResources(content).length,25);
+assert.equal(GL.getLevelCourses(content,'B2').length,0);
+assert.equal(GL.getSpecialCourses(content).length,2);
+assert.equal(GL.getCourseResources(content,'startenwir-a1').length,4);
+for(const row of GL.getLibraryResources(content))assert.equal(Boolean(row.courseId),false,'course asset leaked into independent library');
+const pages=['index','level','course','resource','resources','special','login','admin'];
+for(const page of pages){const html=read(page+'.html');assert(html.includes('assets/theme-init.js'),`${page}: theme missing`);assert(html.includes('assets/site-ui.js'),`${page}: shared UI missing`);assert(html.includes('<footer class="footer">'),`${page}: footer missing`)}
+const admin=read('admin.html'),code=read('assets/page-admin.js');
+for(const id of ['selectVisibleResources','bulkArchive','bulkDraft','runReadiness','readinessResults','roleSummary'])assert(admin.includes(`id="${id}"`),`admin missing ${id}`);
+for(const action of ['add-asset','edit-resource','archive-course'])assert(code.includes(action),`admin missing handler: ${action}`);
+assert(code.includes("if(!courseId&&['Kursbuch'"),'course asset validation missing');
+assert(code.includes("!r.courseId&&r.collection==='level'"),'independent admin partition missing');
+assert(code.includes('selectedResources.clear()'),'bulk selection must clear on save');
+assert(read('assets/site-ui.js').includes('aria-current="page"'),'navigation active state missing');
+assert(read('assets/styles.css').includes('[data-theme="light"]'),'light theme missing');
+assert(read('package.json').includes('"version": "7.3.0"'),'version mismatch');
+console.log('V7.3 IA/UI QA: independent library partition, packages, admin tools, themes, footer and navigation checks passed');

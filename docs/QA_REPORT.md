@@ -1,4 +1,4 @@
-> Historical V7.1 report. Current status and limitations: [7.1.1 audit](AUDIT_AND_RELEASE_FA.md).
+> Historical V7.1 baseline below. Current VNext implementation, executed checks, and known gaps: [VNext Articles release report](VNEXT_ARTICLES_RELEASE_FA.md). The available browser test was attempted for this delivery but did not run because the Python Playwright package is unavailable; Supabase migration and live RLS tests also remain pending an isolated development project.
 
 # German Library v7.1 — QA Report
 

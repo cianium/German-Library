@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root=path.resolve(import.meta.dirname,'..');
 const dist=path.join(root,'dist');
-const required=['index.html','level.html','course.html','resource.html','resources.html','special.html','admin.html','login.html','404.html','site.webmanifest','assets/app.js','assets/backend.js','assets/config.js','assets/styles.css','data/content.js'];
+const required=['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','media.html','special.html','admin.html','login.html','article-studio.html','article-preview.html','404.html','site.webmanifest','assets/app.js','assets/backend.js','assets/article-studio.js','assets/article-preview.js','assets/runtime-config.js','assets/styles.css','data/content.js'];
 const forbiddenExt=new Set(['.sql','.md','.bak']);
 const errors=[];
 if(!fs.existsSync(dist)) errors.push('dist/ does not exist');
@@ -13,7 +13,7 @@ function walk(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);
 }
 for(const file of walk(dist)) if(forbiddenExt.has(path.extname(file))) errors.push(`Dev/private file leaked into dist: ${path.relative(dist,file)}`);
-const cfg=fs.existsSync(path.join(dist,'assets/config.js'))?fs.readFileSync(path.join(dist,'assets/config.js'),'utf8'):'';
+const cfg=fs.existsSync(path.join(dist,'assets/runtime-config.js'))?fs.readFileSync(path.join(dist,'assets/runtime-config.js'),'utf8'):'';
 if(!/supabasePublishableKey:"sb_publishable_/.test(cfg)) errors.push('Production publishable key was not injected');
 if(/supabasePublishableKey:\s*"(?:sb_secret_|service[_-]?role)/i.test(cfg)||/supabaseAnonKey:\s*"(?:sb_secret_|service[_-]?role)/i.test(cfg)) errors.push('Secret/service-role material detected in public config');
 if(/allowDemoAdmin:true/.test(cfg)) errors.push('Demo Admin is enabled in production config');

@@ -31,7 +31,7 @@ const siteUrl=normalizeSiteUrl(rawSite);
 
 fs.rmSync(out,{recursive:true,force:true});
 fs.mkdirSync(out,{recursive:true});
-for(const file of ['index.html','level.html','course.html','resource.html','resources.html','special.html','admin.html','login.html','404.html','site.webmanifest','robots.txt','_headers']){
+for(const file of ['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','media.html','special.html','admin.html','login.html','signup.html','author-request.html','article-studio.html','article-preview.html','404.html','site.webmanifest','robots.txt','_headers']){
   fs.copyFileSync(path.join(root,file),path.join(out,file));
 }
 for(const dir of ['assets','data']) fs.cpSync(path.join(root,dir),path.join(out,dir),{recursive:true});
@@ -47,14 +47,10 @@ for(const level of Object.values(catalog.levels))if(!publishedCourseIds.has(leve
 fs.writeFileSync(path.join(out,'data/content.js'),'window.GERMAN_LIBRARY_CONTENT='+JSON.stringify(catalog)+';\n');
 
 const config=`/* Generated production runtime config. Never place a Supabase secret/service_role key here. */\nwindow.GL_CONFIG={\n  allowDemoAdmin:false,\n  supabaseUrl:${JSON.stringify(supabaseUrl)},\n  supabasePublishableKey:${JSON.stringify(publishableKey)},\n  supabaseAnonKey:"",\n  syncDebounceMs:350,\n  maxUploadBytes:262144000\n};\n`;
-fs.writeFileSync(path.join(out,'assets/config.js'),config);
+fs.writeFileSync(path.join(out,'assets/runtime-config.js'),config);
 
 if(siteUrl){
-  const publicPaths=['/','/resources.html','/special.html',...['A1','A2','B1','B2','C1','C2'].map(x=>`/level.html?level=${x}`)];
-  const escXml=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const sitemap=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${publicPaths.map(p=>`  <url><loc>${escXml(siteUrl+p)}</loc></url>`).join('\n')}\n</urlset>\n`;
-  fs.writeFileSync(path.join(out,'sitemap.xml'),sitemap);
-  const robots=`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /login.html\n\nSitemap: ${siteUrl}/sitemap.xml\n`;
+  const robots=`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /login.html\nDisallow: /article-studio.html\nDisallow: /article-preview.html\nDisallow: /api/\n\nSitemap: ${siteUrl}/sitemap.xml\n`;
   fs.writeFileSync(path.join(out,'robots.txt'),robots);
 }else{
   console.warn('SITE_URL/VERCEL_URL is unavailable; sitemap.xml was not generated for this build.');

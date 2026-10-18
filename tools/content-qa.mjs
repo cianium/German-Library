@@ -26,6 +26,20 @@ if(result.errors.length||dead.length) process.exit(1);
 
 const assert=(condition,message)=>{if(!condition)throw new Error(message)};
 const GL=window.GL;
+const library=GL.getLibraryResources(content);
+assert(library.length===content.resources.filter(r=>r.status==='published'&&r.collection==='level'&&!r.courseId).length,'library excludes the wrong published assets');
+assert(library.every(r=>!r.courseId&&!['Kursbuch','Arbeitsbuch','Book','Transcript'].includes(r.type)),'book asset leaked to independent library');
+for(const level of GL.LEVELS){
+  assert(GL.getSupplementary(content,level).every(r=>library.some(item=>item.id===r.id)),'supplementary resource missing from library');
+  for(const course of GL.getLevelCourses(content,level))assert(GL.getCourseResources(content,course.id).every(r=>!library.some(item=>item.id===r.id)),'course file leaked into library');
+}
+const mock=GL.clone(content),example=mock.resources.find(r=>r.courseId);
+mock.resources.push({...example,id:'new-test-transcript',type:'Video Transcript'});
+assert(!GL.getLibraryResources(mock).some(r=>r.id==='new-test-transcript'),'video transcript leaked into library');
+mock.resources[mock.resources.length-1].courseId='';
+assert(GL.getLibraryResources(mock).some(r=>r.id==='new-test-transcript'),'standalone transcript should remain searchable');
+mock.resources[mock.resources.length-1].type='Kursbuch';
+assert(GL.validateContent(mock).errors.some(e=>e.includes('فایل کتاب باید')),'orphan coursebook must be rejected');
 assert(GL.getRoadmap(content,'B2').every(step=>step.label!=='Kursbuch'),'missing core book appeared in roadmap');
 assert(GL.getRoadmap(content,'A2')[0].label==='Kursbuch','core roadmap does not begin with coursebook');
 const draft=GL.clone(content);draft.courses[0].status='draft';

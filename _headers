@@ -16,5 +16,5 @@
 /data/*
   Cache-Control: public, max-age=0, must-revalidate
 
-/assets/config.js
+/assets/runtime-config.js
   Cache-Control: no-store, max-age=0

@@ -4,7 +4,7 @@
 create extension if not exists pgcrypto;
 
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$ begin new.updated_at=now(); return new; end $$;
+returns trigger language plpgsql set search_path='' as $$ begin new.updated_at=now(); return new; end $$;
 
 create table if not exists public.profiles(
   id uuid primary key references auth.users(id) on delete cascade,
@@ -20,11 +20,15 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
 insert into public.profiles(id,role) select id,'learner' from auth.users on conflict(id) do nothing;
 
-create or replace function public.is_staff()
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_staff()
 returns boolean language sql stable security definer set search_path='' as $$
   select exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role in ('admin','editor'));
 $$;
-create or replace function public.is_admin()
+create or replace function private.is_admin()
 returns boolean language sql stable security definer set search_path='' as $$
   select exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='admin');
 $$;
@@ -145,7 +149,7 @@ create trigger resources_updated_at before update on public.resources for each r
 
 -- Resource must match its Book Package context.
 create or replace function public.validate_resource_course_context()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path='' as $$
 declare c_level text; c_collection text; c_status text;
 begin
   if new.course_id is not null then
@@ -166,7 +170,7 @@ create trigger validate_resource_course_context before insert or update on publi
 
 -- Special Books cannot be marked Core.
 create or replace function public.validate_course_core_context()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path='' as $$
 begin
   if new.collection='special' and new.is_core then raise exception 'Special Book cannot be Core'; end if;
   if new.is_core and new.status<>'published' then raise exception 'Core Book must be published'; end if;
@@ -201,34 +205,52 @@ grant insert,update on public.levels,public.courses,public.resources to authenti
 grant select on public.profiles to authenticated;
 
 drop policy if exists "own profile select" on public.profiles;
-create policy "own profile select" on public.profiles for select to authenticated using((select auth.uid())=id);
 drop policy if exists "staff profiles select" on public.profiles;
-create policy "staff profiles select" on public.profiles for select to authenticated using(public.is_staff());
 drop policy if exists "admin profiles update" on public.profiles;
+drop policy if exists "profile access" on public.profiles;
+create policy "profile access" on public.profiles for select to authenticated
+using((select auth.uid())=id or private.is_staff());
 
 drop policy if exists "read levels" on public.levels;
-create policy "read levels" on public.levels for select to anon,authenticated using(true);
+create policy "read levels" on public.levels for select to anon using(true);
+drop policy if exists "authenticated read levels" on public.levels;
+create policy "authenticated read levels" on public.levels for select to authenticated using(true);
 drop policy if exists "read published courses" on public.courses;
-create policy "read published courses" on public.courses for select to anon,authenticated using(status='published');
+create policy "read published courses" on public.courses for select to anon using(status='published');
+drop policy if exists "authenticated course access" on public.courses;
+create policy "authenticated course access" on public.courses for select to authenticated
+using(status='published' or private.is_staff());
 drop policy if exists "read published resources" on public.resources;
-create policy "read published resources" on public.resources for select to anon,authenticated using(status='published');
+create policy "read published resources" on public.resources for select to anon using(status='published');
+drop policy if exists "authenticated resource access" on public.resources;
+create policy "authenticated resource access" on public.resources for select to authenticated
+using(status='published' or private.is_staff());
 
 drop policy if exists "staff levels all" on public.levels;
-create policy "staff levels all" on public.levels for all to authenticated using(public.is_staff()) with check(public.is_staff());
+drop policy if exists "staff levels insert" on public.levels;
+create policy "staff levels insert" on public.levels for insert to authenticated with check(private.is_staff());
+drop policy if exists "staff levels update" on public.levels;
+create policy "staff levels update" on public.levels for update to authenticated using(private.is_staff()) with check(private.is_staff());
 drop policy if exists "staff courses all" on public.courses;
-create policy "staff courses all" on public.courses for all to authenticated using(public.is_staff()) with check(public.is_staff());
+drop policy if exists "staff courses insert" on public.courses;
+create policy "staff courses insert" on public.courses for insert to authenticated with check(private.is_staff());
+drop policy if exists "staff courses update" on public.courses;
+create policy "staff courses update" on public.courses for update to authenticated using(private.is_staff()) with check(private.is_staff());
 drop policy if exists "staff resources all" on public.resources;
-create policy "staff resources all" on public.resources for all to authenticated using(public.is_staff()) with check(public.is_staff());
+drop policy if exists "staff resources insert" on public.resources;
+create policy "staff resources insert" on public.resources for insert to authenticated with check(private.is_staff());
+drop policy if exists "staff resources update" on public.resources;
+create policy "staff resources update" on public.resources for update to authenticated using(private.is_staff()) with check(private.is_staff());
 
 -- Trigger helpers should not be callable as public RPC endpoints.
 revoke all on function public.handle_new_user() from public,anon,authenticated;
 revoke all on function public.set_updated_at() from public,anon,authenticated;
 revoke all on function public.validate_resource_course_context() from public,anon,authenticated;
 revoke all on function public.validate_course_core_context() from public,anon,authenticated;
-revoke all on function public.is_staff() from public,anon,authenticated;
-revoke all on function public.is_admin() from public,anon,authenticated;
-grant execute on function public.is_staff() to authenticated;
-grant execute on function public.is_admin() to authenticated;
+revoke all on function private.is_staff() from public,anon,authenticated;
+revoke all on function private.is_admin() from public,anon,authenticated;
+grant execute on function private.is_staff() to authenticated;
+grant execute on function private.is_admin() to authenticated;
 
 -- Private Storage; public can sign/read only files referenced by Published resources.
 insert into storage.buckets(id,name,public,file_size_limit)
@@ -246,13 +268,17 @@ create policy "published resource files read" on storage.objects for select to a
   )
 );
 drop policy if exists "staff resource files read" on storage.objects;
-create policy "staff resource files read" on storage.objects for select to authenticated using(bucket_id='resource-files' and public.is_staff());
+create policy "staff resource files read" on storage.objects for select to authenticated using(bucket_id='resource-files' and private.is_staff());
 drop policy if exists "staff resource files insert" on storage.objects;
-create policy "staff resource files insert" on storage.objects for insert to authenticated with check(bucket_id='resource-files' and public.is_staff());
+create policy "staff resource files insert" on storage.objects for insert to authenticated with check(bucket_id='resource-files' and private.is_staff());
 drop policy if exists "staff resource files update" on storage.objects;
-create policy "staff resource files update" on storage.objects for update to authenticated using(bucket_id='resource-files' and public.is_staff()) with check(bucket_id='resource-files' and public.is_staff());
+create policy "staff resource files update" on storage.objects for update to authenticated using(bucket_id='resource-files' and private.is_staff()) with check(bucket_id='resource-files' and private.is_staff());
 drop policy if exists "staff resource files delete" on storage.objects;
-create policy "staff resource files delete" on storage.objects for delete to authenticated using(bucket_id='resource-files' and public.is_staff());
+create policy "staff resource files delete" on storage.objects for delete to authenticated using(bucket_id='resource-files' and private.is_staff());
+
+-- Retire exposed v7.1 helper RPCs after all table and Storage policies have moved.
+drop function if exists public.is_staff();
+drop function if exists public.is_admin();
 
 -- First admin:
 -- update public.profiles set role='admin' where id=(select id from auth.users where email='YOUR_ADMIN_EMAIL');

@@ -1,6 +1,5 @@
-German Library 7.1.1
-Baseline: user-provided V7.1
-Reviewed: 2026-10-08
-Status: Ready for staging, not live-production verified
-See docs/AUDIT_AND_RELEASE_FA.md for scope, fixes, tests and blockers.
-Includes source, SQL, QA and screenshots. Excludes test dist and temporary browser dependencies.
+German Library v3.2.1-p0-preview
+Based on: v3.2.0 Mobile Article Studio Preview (derived from V7.4)
+Source-only P0 patch; not deployed
+Mandatory after vNext article migration: backend/migrations/20261015_p0_article_source_read_access.sql
+Live RLS/role test pending; see docs/P0_SECURITY_AND_NAV_REPORT_FA.md

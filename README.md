@@ -1,143 +1,63 @@
-# German Library
+# German Library v3.2.1-p0-preview — Security & SSR Navigation Patch
 
-**A mobile-first, curated German-learning resource library for CEFR levels A1–C2.**
+**این نسخه Source-only است، Production نیست.** پچ امنیتی جدید `backend/migrations/20261015_p0_article_source_read_access.sql` باید **پس از** Migration مقالات vNext روی Supabase Development اجرا و با حساب‌های واقعی آزمایش شود. بدون اجرای SQL، مشکل دسترسی به نسخه در حال ویرایش حل نشده است. مسیرهای SSR مقالات چهارمقصدی و هماهنگ با V7.5 شده‌اند؛ SEO URL خالی هم اصلاح شده است. گزارش کامل: `docs/P0_SECURITY_AND_NAV_REPORT_FA.md`.
 
-German Library helps learners find appropriate German-learning books, supporting materials, and practice resources without searching through scattered links. It organizes resources by CEFR level, book package, and learning goal, and provides a separate collection for cross-level books.
+تست‌ها: `npm run qa`، `npm run qa:ssr:browser` و `npm run qa:studio:browser`. Build آزمایشی جای تست دیتابیس واقعی را نمی‌گیرد.
 
-**[Explore the live site](https://german-library.vercel.app)** · [Source code](https://github.com/cianium/Bibliothek-) · [Changelog](CHANGELOG.md)
+---
 
-> **Project status:** Publicly deployed. Production authentication, storage access, and real-device end-to-end testing should be verified independently before declaring the release fully validated. See [release checklist](docs/RELEASE_CHECKLIST_FA.md).
+# German Library v3.2.0-preview — Article Studio Mobile Increment
 
-## The problem
+**این بسته یک توسعه افزایشی است و جایگزین کامل نیازمندی‌های V7.5 نیست.**
+- ناوبری عمومی چهارمقصدی V7.5 با Articles زیر Extras؛ پنل مدیریت تغییر نکرده است.
+- جدول‌ساز، ویرایش لینک داخلی/خارجی، Alt و Caption جداگانه و ویرایش تصویر موجود.
+- اصلاح باگ حفظ متادیتا هنگام باز کردن مقاله و بهبود SEO تصویر.
+- دستور تست: `npm run qa`؛ تست UI با Chromium و Playwright: `npm run qa:studio:browser`.
+- مستندات تغییرات و محدودیت‌ها: `docs/VNEXT_MOBILE_STUDIO_DELTA_FA.md`.
+- آپلود امن تصاویر در Editor، Structured Editor Engine و Live Supabase/RLS QA **هنوز انجام نشده است**.
+- برای ساخت Production باید `SUPABASE_URL`، `SUPABASE_PUBLISHABLE_KEY` و `SITE_URL` واقعی و امن را تنظیم کنی؛ `dist/` آزمایشی در فایل ZIP تحویلی قرار ندارد.
 
-German learners often encounter disconnected resources: a coursebook in one place, its workbook or audio elsewhere, and supplementary grammar or vocabulary material in yet another list. German Library focuses on **resource discovery and organization**, not on replacing a teacher or becoming a full learning management system (LMS).
+---
 
-## Features
+# German Library v3 (Source release)
 
-- **CEFR-based browsing:** Resources organized across A1, A2, B1, B2, C1, and C2.
-- **Book-centered structure:** Coursebooks, workbooks, audio, video, transcripts, and links grouped with the corresponding book package.
-- **Learning-oriented discovery:** Suggested routes and supplementary resources for skills such as listening, reading, grammar, and vocabulary.
-- **Special Books:** A separate collection for cross-level or non-CEFR books.
-- **Responsive learner experience:** Mobile-first layouts and navigation.
-- **Content management:** Admin workflows for creating, editing, publishing, archiving, importing, and exporting resources.
-- **Backend access controls:** Supabase Authentication, Row Level Security (RLS), and private Storage policies defined in the project; these require verification against the deployed backend.
+This v3 release is derived from German Library V7.4.0; it **is not** the older V7.3 release.
 
-## Live demo
+## What's in v3.1
+- Five destinations: **سطح → مکمل → خانه → مقالات → کتابخانه**.
+- Books-only library: categories and featured shelf; all published books regardless of level.
+- Admin book editor: stable ID, book type, skills, optional CEFR, featured flag, cover URL/upload, book URL/upload, provider, status, core selection.
+- Book assets: audio, podcast, video, transcript are still editable inside a book.
+- Dedicated levels directory; independent media in Supplemental tab.
+- Calm teal/blue-green light and deep-slate dark palette.
+- Vercel server-rendered Articles directory and individual article pages, with raw SEO metadata, JSON-LD, sitemap, 404, and slug redirects.
+- Supabase Article Studio workflow, private preview, revision history, optimistic concurrency, SEO checklist, and Admin-only Author assignment with audit.
+- Additive Article and role migration: `backend/migrations/20261014_vnext_articles.sql`.
 
-**Website:** https://german-library.vercel.app
+## Run locally on Termux
+Extract to a clean directory and run `python -m http.server 8080`; visit `http://127.0.0.1:8080/index.html`. **Never serve an old `dist` directory.** Offline mode uses sample content and a local Demo admin only on localhost. Live authentication/uploads need Supabase.
 
-The public website is intended for learners. Administrative features require authorized access and are not part of the public demo.
+## Article routes
 
-### Screenshots
+Article HTML and `/sitemap.xml` run as Vercel Functions. `python -m http.server` does not execute these routes. Configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SITE_URL` in Vercel. The publishable key is safe for browser use; no service-role key is required by the article renderer.
 
-Screenshots will be added after capturing and reviewing the deployed desktop and mobile interfaces. This section intentionally contains no placeholder or fabricated product images.
+## Supabase release order
+1. Back up Production database and storage.
+2. In Development, apply `backend/migrations/20261014_v74_books_media.sql` if missing, then `backend/migrations/20261014_v3_book_metadata.sql`.
+3. Apply `backend/migrations/20261014_vnext_articles.sql` **then** `backend/migrations/20261015_p0_article_source_read_access.sql` in Development; run both `backend/validation/vnext_articles_check.sql` and `backend/validation/p0_article_access_check.sql` and live positive/negative role tests.
+4. Set public Supabase URL, publishable key and `SITE_URL` in Vercel; never expose service-role keys.
+5. Deploy Preview and verify existing Staff, book uploads and sync, plus article login, autosave, RLS, publishing, raw HTML, canonical, redirects and sitemap.
+6. Only after successful Preview testing, plan a separate Production migration and deployment. No live Supabase migration or Production deployment was performed in this build.
 
-## How it works
+## QA
+`npm run qa` then `npm run build` then `npm run verify:dist`. The mocked Function and raw-HTML checks run in `tools/vnext-articles-qa.mjs`. Local browser QA: `python3 tools/v3-browser-qa.py` (requires Python Playwright and Chromium); it does not verify live Supabase.
 
-```text
-Home
-├── CEFR Levels (A1–C2)
-│   ├── Core Book
-│   │   └── Coursebook / Workbook / Audio / Video / Transcript / Links
-│   ├── Other Books
-│   │   └── Their associated learning assets
-│   └── Supplementary Skills
-│       └── Listening / Reading / Grammar / Vocabulary / ...
-└── Special Books
-    └── Cross-level books and their associated resources
-```
+## Article platform boundaries
 
-Learners can choose a level, follow the available suggestions, open a book package, or browse additional resources. Public content is separate from the staff content-management workflow.
+The editor currently uses browser `contenteditable` with allow-list serialization. Cover and inline images require stable public HTTPS URLs. Private draft bucket policies and asset metadata are prepared, but in-editor uploads, crop/focal-point tools, draft-to-public asset promotion, scheduled publishing, and live Supabase tests are not implemented.
 
-## Tech stack
-
-| Layer | Technology / approach |
-| --- | --- |
-| Frontend | HTML, CSS, vanilla JavaScript |
-| Backend | Supabase (Postgres, Auth, Storage) |
-| Authorization | Row Level Security and role-based staff workflows |
-| Hosting | Vercel |
-| Build & QA | Node.js scripts, Python QA utilities |
-
-The frontend does not require a heavyweight framework. The production build generates a deployable `dist/` directory.
-
-## Local development
-
-**Requirements:** Node.js 20+ and Python 3.
-
-Clone and run the project:
-
-```bash
-git clone https://github.com/cianium/Bibliothek-.git
-cd Bibliothek-
-npm run qa
-npm run serve
-```
-
-Then visit **http://localhost:8080/**.
-
-Local/demo behavior is distinct from production authentication. Do not treat local demo access as evidence of production access controls.
-
-## Production build
-
-Configure the following environment variables in your hosting provider:
-
-```dotenv
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-SITE_URL=https://your-domain.example
-```
-
-`SUPABASE_PUBLISHABLE_KEY` is a public browser key. **Never place a Supabase secret or service-role key in client-side code or public environment variables.**
-
-```bash
-npm run build
-npm run verify:dist
-```
-
-The deployable output is written to `dist/`. The repository includes Vercel deployment configuration. Before connecting an existing database, review the schema, migration considerations, and backup guidance in [Supabase setup](docs/SUPABASE_SETUP.md).
-
-### Quality checks
-
-```bash
-npm run qa
-npm run release:check
-```
-
-`release:check` runs the project's QA, production build, and output verification. A passing local check does **not** replace real-browser, live Auth/RLS, file-access, and production smoke tests.
-
-## Documentation
-
-- **[Supabase setup](docs/SUPABASE_SETUP.md)** — schema, Auth roles, Storage, and backend verification.
-- **[QA report](docs/QA_REPORT.md)** — historical automated test coverage and remaining real-device checks.
-- **[Release checklist (Persian)](docs/RELEASE_CHECKLIST_FA.md)** — deployment and acceptance checklist; update its status as tests are completed.
-- **[Technical audit (Persian)](docs/AUDIT_AND_RELEASE_FA.md)** — the dated v7.1.1 assessment, fixes, and known limitations.
-- **[Changelog](CHANGELOG.md)** — version history.
-
-> Some audit and release documents describe the project **as of October 8, 2026**, before the public deployment was reported. Those historical findings should not be mistaken for a current, fully verified production test result.
-
-## Security and content principles
-
-- Anonymous access should be restricted to published content through database policies.
-- Editing and uploading should require authorized staff roles.
-- Private Storage files should remain private and be accessed only through the intended authorization flow.
-- Resource links should point to authorized publishers and providers; the application should not redistribute copyrighted commercial material without permission.
-- Review [Supabase setup](docs/SUPABASE_SETUP.md) and execute the post-deploy checks before declaring these guarantees verified in a specific deployment.
-
-## Project scope
-
-German Library is a **curated resource library and learning-path guide**, not a complete LMS. Progress tracking, gamification, quizzes, and AI tutoring are deliberately outside the current core scope.
-
-## Roadmap
-
-- [ ] Verify end-to-end flows on real mobile devices and desktop browsers.
-- [ ] Validate live Supabase Auth, RLS, private-file access, and staff workflows.
-- [ ] Collect learner feedback and fix high-impact usability issues.
-- [ ] Add verified desktop/mobile product screenshots.
-- [ ] Complete the release documentation and publish an official GitHub release after acceptance checks.
-
-## License and contributions
-
-The repository currently has **no root `LICENSE` file** confirmed during this review. Until a license is selected and added, public visibility does not imply permission to reuse or redistribute the source code.
-
-For now, questions, bug reports, and suggestions can be raised through the repository's GitHub Issues, if enabled. Contribution guidelines can be added after deciding on an appropriate licensing and maintenance policy.
+## Known constraints
+- Level/category changes on existing books with dependent files are blocked to preserve referential integrity; move assets first.
+- Cover upload uses existing private Supabase Storage; public viewing requires the current bucket signed-download rules.
+- External links are structurally validated but not automatically health-checked.
+- Migration is not automatically executed on any live database.

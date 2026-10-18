@@ -1,17 +1,20 @@
 {
   "name": "german-library",
   "private": true,
-  "version": "7.1.1",
-  "description": "Mobile-first curated German learning library for CEFR A1-C2.",
+  "version": "3.2.1-p0-preview",
+  "description": "German learning library with server-rendered learning articles and role-aware author studio.",
   "scripts": {
     "configure": "node scripts/configure.mjs",
     "build": "node scripts/build.mjs",
-    "qa": "python3 tools/qa.py && node tools/content-qa.mjs && node tools/backend-sync-qa.mjs",
+    "qa": "python3 tools/qa.py && node tools/content-qa.mjs && node tools/backend-sync-qa.mjs && node tools/v74-qa.mjs && node tools/v3-qa.mjs && node tools/vnext-articles-qa.mjs && node tools/p0-security-navigation-qa.mjs",
     "release:check": "npm run qa && npm run build && npm run verify:dist",
     "serve": "python3 -m http.server 8080",
+    "qa:studio:browser": "python3 tools/article-studio-mobile-qa.py",
+    "qa:ssr:browser": "python3 tools/p0-ssr-browser-qa.py",
     "verify:dist": "node tools/dist-qa.mjs"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "type": "module"
 }

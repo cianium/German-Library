@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/articles", "destination": "/api/articles" },
+    { "source": "/articles/:slug", "destination": "/api/article?slug=:slug" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -64,7 +69,7 @@
       ]
     },
     {
-      "source": "/assets/config.js",
+      "source": "/assets/runtime-config.js",
       "headers": [
         {
           "key": "Cache-Control",

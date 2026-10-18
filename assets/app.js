@@ -3,7 +3,11 @@
   const LEGACY_CONTENT_KEYS=['gl_content_v6','gl_content_v5','gl_content_v4','gl_content_v3','gl_content_v2'];
   const LEVELS=['A1','A2','B1','B2','C1','C2'];
   const SKILLS=['Hören','Lesen','Grammatik','Wortschatz','Sprechen','Schreiben','Aussprache','Prüfung','Extra Practice'];
-  const COLLECTIONS=['level','special'];
+  const COLLECTIONS=['level','special','library','media'];
+  const MEDIA_TYPES=['Film','Series','Podcast','Article'];
+  const BOOK_TYPES=['Kursbuch','Arbeitsbuch','Book'];
+  const BOOK_CATEGORIES=['Lehrwerk','Arbeitsbuch','Grammatik','Wortschatz','Sprechen','Hören','Lesen','Schreiben','Aussprache','Prüfung','Sonstige'];
+  const BOOK_CATEGORY_LABELS={Lehrwerk:'کتاب درسی',Arbeitsbuch:'کتاب کار',Grammatik:'دستور زبان',Wortschatz:'واژگان',Sprechen:'مکالمه',Hören:'شنیداری',Lesen:'خواندن',Schreiben:'نوشتن',Aussprache:'تلفظ',Prüfung:'آمادگی آزمون',Sonstige:'سایر کتاب‌ها'};
 
   const clone=o=>JSON.parse(JSON.stringify(o));
   const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -17,18 +21,23 @@
   function normalizeCourse(x,i=0){
     x=Object.assign({},x||{});
     const collection=COLLECTIONS.includes(x.collection)?x.collection:'level';
-    const level=collection==='level'&&LEVELS.includes(x.level)?x.level:'';
+    const level=collection!=='special'&&LEVELS.includes(x.level)?x.level:'';
     return {
       id:String(x.id||`course-${i+1}`),title:String(x.title||'').trim(),collection,level,
       description:String(x.description||'').trim(),order:num(x.order,i+1),
-      status:['draft','published','archived'].includes(x.status)?x.status:'published'
+      bookType:BOOK_CATEGORIES.includes(x.bookType)?x.bookType:(x.collection==='level'?'Lehrwerk':x.collection==='special'?'Grammatik':'Sonstige'),
+      skills:(Array.isArray(x.skills)?x.skills:[x.skill||'']).filter(v=>SKILLS.includes(v)),
+      coverUrl:String(x.coverUrl||'').trim(),coverStoragePath:String(x.coverStoragePath||'').trim(),
+      url:String(x.url||'').trim(),storagePath:String(x.storagePath||'').trim(),provider:String(x.provider||'').trim(),
+      status:['draft','published','archived'].includes(x.status)?x.status:'published',
+      featured:Boolean(x.featured ?? (collection==='special'))
     };
   }
 
   function normalizeResource(r,i=0){
     const x=Object.assign({},r||{}),legacyLearningScoped=Boolean(x.lessonId||x.unitId||x.scope==='lesson');
     const collection=COLLECTIONS.includes(x.collection)?x.collection:'level';
-    const level=collection==='level'&&LEVELS.includes(x.level)?x.level:'';
+    const level=collection!=='special'&&LEVELS.includes(x.level)?x.level:'';
     return {
       id:String(x.id||`resource-${i+1}`),title:String(x.title||'').trim(),description:String(x.description||'').trim(),
       collection,level,courseId:String(x.courseId||''),type:String(x.type||'Website'),skill:String(x.skill||'Extra Practice'),
@@ -50,7 +59,7 @@
     const courseMap=new Map(c.courses.map(x=>[x.id,x]));
     c.resources=c.resources.map(r=>{
       const course=courseMap.get(r.courseId);
-      if(course?.collection==='special')return {...r,collection:'special',level:''};
+      if(course)return {...r,collection:course.collection,level:course.level||''};
       return r;
     });
     delete c.units;delete c.lessons;
@@ -73,15 +82,19 @@
 
   function getCourse(c,id){return c.courses.find(x=>x.id===id)}
   function getResource(c,id){return c.resources.find(x=>x.id===id)}
-  function getCoreCourse(c,level){const id=c.levels[level]?.coreCourseId;const course=id?getCourse(c,id):null;return course&&course.collection==='level'&&course.level===level&&published(course)?course:null}
-  function getLevelCourses(c,level,{includeCore=true}={}){const coreId=c.levels[level]?.coreCourseId;return c.courses.filter(x=>published(x)&&x.collection==='level'&&x.level===level&&(includeCore||x.id!==coreId)).sort(byOrder)}
-  function getSpecialCourses(c){return c.courses.filter(x=>published(x)&&x.collection==='special').sort(byOrder)}
+  function getCoreCourse(c,level){const id=c.levels[level]?.coreCourseId;const course=id?getCourse(c,id):null;return course&&['level','library'].includes(course.collection)&&course.level===level&&published(course)?course:null}
+  function getLevelCourses(c,level,{includeCore=true}={}){const coreId=c.levels[level]?.coreCourseId;return c.courses.filter(x=>published(x)&&x.level===level&&['level','library'].includes(x.collection)&&(includeCore||x.id!==coreId)).sort(byOrder)}
+  function getSpecialCourses(c){return c.courses.filter(x=>published(x)&&x.featured).sort(byOrder)}
+  function getBooks(c){return c.courses.filter(published).sort(byOrder)}
   function isPublicResource(c,r){return published(r)&&(!r.courseId||published(getCourse(c,r.courseId)))}
-  function getPublishedResources(c,collection='level'){return c.resources.filter(r=>isPublicResource(c,r)&&(!collection||r.collection===collection)).sort(byOrder)}
-  function getLevelResources(c,level){return getPublishedResources(c,'level').filter(r=>r.level===level)}
+  function getPublishedResources(c,collection){return c.resources.filter(r=>isPublicResource(c,r)&&(!collection||r.collection===collection)).sort(byOrder)}
+  function getLevelResources(c,level){return getPublishedResources(c).filter(r=>r.level===level)}
+  function getLibraryResources(c){return getPublishedResources(c,'level').filter(r=>!r.courseId)}
+  function getMedia(c){return getPublishedResources(c,'media').filter(r=>!r.courseId&&MEDIA_TYPES.includes(r.type))}
+  function getFeatured(c){return {courses:getSpecialCourses(c),resources:getPublishedResources(c).filter(r=>r.featured)}}
   function getCourseResources(c,courseId,{publishedOnly=true}={}){const rows=c.resources.filter(r=>r.courseId===courseId&&(publishedOnly?isPublicResource(c,r):r.status!=='archived'));return rows.sort(byOrder)}
-  function getSupplementary(c,level){return getLevelResources(c,level).filter(r=>!r.courseId).sort(byOrder)}
-  function skillCount(c,level,skill){return getLevelResources(c,level).filter(r=>r.skill===skill&&!r.courseId).length}
+  function getSupplementary(c,level){return getLibraryResources(c).filter(r=>r.level===level).sort(byOrder)}
+  function skillCount(c,level,skill){return getSupplementary(c,level).filter(r=>r.skill===skill).length}
   function activeSkills(c,level){return SKILLS.map(skill=>({skill,count:skillCount(c,level,skill)})).filter(x=>x.count>0)}
 
   function safeExternalUrl(value){
@@ -92,15 +105,21 @@
   const courseHref=c=>`course.html?id=${encodeURIComponent(c?.id||'')}`;
   const priorityLabel=p=>({essential:'ضروری',recommended:'پیشنهادی',extra:'اختیاری'})[p]||'منبع';
   const pricingLabel=p=>({free:'رایگان',paid:'پولی',unknown:'نامشخص'})[p]||'نامشخص';
-  const collectionLabel=c=>c==='special'?'کتاب ویژه':'سطح CEFR';
+  const collectionLabel=c=>({special:'کتاب چندسطحی',library:'کتابخانه',media:'رسانه',level:'سطح CEFR'})[c]||c;
   const typeIcon=type=>{
     const map={
       Kursbuch:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"></path></svg>',
       Arbeitsbuch:'<svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
       Book:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"></path></svg>',
       Audio:'<svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+      Film:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m10 9 5 3-5 3Z"></path></svg>',
+      Series:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m10 9 5 3-5 3Z"></path></svg>',
+      Article:'<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"></path></svg>',
       Podcast:'<svg viewBox="0 0 24 24"><circle cx="12" cy="11" r="3"></circle><path d="M5.4 17.6a9 9 0 1 1 13.2 0"></path><path d="M8.8 15.2a5 5 0 1 1 6.4 0"></path><path d="M12 14v8"></path></svg>',
       Video:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m10 9 5 3-5 3Z"></path></svg>',
+      'Audio Transcript':'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>',
+      'Video Transcript':'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>',
+      'Podcast Transcript':'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>',
       Transcript:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>',
       Website:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a15 15 0 0 1 0 18"></path><path d="M12 3a15 15 0 0 0 0 18"></path></svg>',
       Link:'<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>'
@@ -110,7 +129,7 @@
   function resourceCard(r,{compact=false,preview=false,content=null}={}){
     const detailHref=resourceHref(r)+(preview?'&preview=1':''),external=!r.storagePath?safeExternalUrl(r.url):'',available=Boolean(r.storagePath||external);
     const course=content&&r.courseId?getCourse(content,r.courseId):null;
-    const context=r.collection==='special'?'<span class="meta-pill">کتاب ویژه</span>':`<span class="meta-pill">${esc(r.level)}</span>`;
+    const context=r.level?`<span class="meta-pill">${esc(r.level)}</span>`:'';
     const packageContext=course?`<span class="meta-pill">بسته: ${esc(course.title)}</span>`:'';
     const skillLabel=r.skill==='Course'?'منابع کتاب':esc(r.skill);
     let actions=`<a class="soft-btn" href="${detailHref}">جزئیات</a>`;
@@ -119,11 +138,20 @@
     else actions+=`<span class="soft-btn btn-disabled" aria-disabled="true">دسترسی ثبت نشده</span>`;
     return `<article class="neo-card resource-card priority-${esc(r.priority)}${compact?' compact':''}"><span class="resource-icon">${typeIcon(r.type)}</span><div class="resource-main"><h3 class="ltr">${esc(r.title)}</h3><p>${esc(r.description||'')}</p><div class="resource-tags"><span class="meta-pill">${skillLabel}</span><span class="meta-pill">${esc(r.type)}</span><span class="priority-badge">${priorityLabel(r.priority)}</span>${context}${preview&&r.status!=='published'?`<span class="status-badge">${esc(r.status)}</span>`:''}</div><div class="resource-provider">${esc(r.provider)} · ${pricingLabel(r.pricing)}${course?` · <a href="${courseHref(course)}">${esc(course.title)}</a>`:''}</div></div><div class="resource-actions">${actions}</div></article>`;
   }
+  function coverMarkup(course){
+    const external=safeExternalUrl(course.coverUrl);
+    const src=external||'';
+    return `<span class="gl-book-cover">${src?`<img loading="lazy" alt="جلد ${esc(course.title)}" src="${esc(src)}">`:course.coverStoragePath?`<img loading="lazy" alt="جلد ${esc(course.title)}" data-gl-cover="${esc(course.coverStoragePath)}">`:`<span aria-hidden="true">${typeIcon('Book')}</span>`}</span>`;
+  }
+  async function hydrateCovers(root=document){
+    const nodes=[...root.querySelectorAll('img[data-gl-cover]')];
+    await Promise.all(nodes.map(async img=>{try{if(window.GLBackend?.isCloudMode?.()){const url=await window.GLBackend.signedUrl(img.dataset.glCover);if(url)img.src=url;}}catch(e){img.removeAttribute('src')}}));
+  }
   function courseCard(course,content,{core=false}={}){
     const count=getCourseResources(content,course.id).length;
-    const eyebrow=core?'مسیر اصلی':course.collection==='special'?'کتاب ویژه':'بسته کتاب';
-    const meta=course.collection==='special'?'بدون محدودیت CEFR':course.level;
-    return `<article class="neo-card mini-course-card"><div class="mini-course-copy"><div class="eyebrow"><span class="eyebrow-dot"></span> ${eyebrow}</div><h3 class="ltr">${esc(course.title)}</h3><p>${esc(course.description||'')}</p><div class="meta-row"><span class="meta-pill">${meta}</span><span class="meta-pill">${count} منبع مرتبط</span></div></div><a class="primary-btn" href="${courseHref(course)}">باز کردن کتاب</a></article>`;
+    const eyebrow=core?'کتاب اصلی':course.featured?'انتخاب ویژه':(BOOK_CATEGORY_LABELS[course.bookType]||'کتاب');
+    const meta=course.level||'بدون سطح';
+    return `<article class="neo-card mini-course-card gl-book-card">${coverMarkup(course)}<div class="mini-course-copy"><div class="eyebrow"><span class="eyebrow-dot"></span> ${eyebrow}</div><h3 dir="auto">${esc(course.title)}</h3><p>${esc(course.description||'')}</p><div class="meta-row"><span class="meta-pill">${meta}</span><span class="meta-pill">${esc(BOOK_CATEGORY_LABELS[course.bookType]||'سایر')}</span>${count?`<span class="meta-pill">${count} فایل مرتبط</span>`:''}</div></div><a class="primary-btn" href="${courseHref(course)}">مشاهده کتاب</a></article>`;
   }
 
   function getRoadmap(c,level){
@@ -145,30 +173,37 @@
       if(courseIds.has(cse.id))errors.push(`Course ID تکراری: ${cse.id}`);courseIds.add(cse.id);
       if(!cse.title)errors.push(`Course بدون عنوان: ${cse.id}`);
       if(cse.collection==='level'&&!LEVELS.includes(cse.level))errors.push(`${cse.title||cse.id}: Level معتبر ندارد`);
-      if(cse.collection==='special'&&cse.level)errors.push(`${cse.title||cse.id}: کتاب ویژه نباید Level داشته باشد`);
+      if(cse.coverUrl&&!safeExternalUrl(cse.coverUrl))errors.push(`${cse.id}: Cover URL معتبر نیست`);
+      if(cse.url&&!safeExternalUrl(cse.url))errors.push(`${cse.id}: Book URL معتبر نیست`);
+      if(cse.status==='published'&&!cse.url&&!cse.storagePath&&!c.resources.some(r=>r.courseId===cse.id&&r.status==='published'))warnings.push(`${cse.id}: کتاب Published بدون لینک یا فایل قابل دسترس است`);
+      if(cse.collection==='media')errors.push(`${cse.id}: Book نمی‌تواند Media collection باشد`);
+      if(cse.collection==='special'&&cse.level)errors.push(`${cse.title||cse.id}: کتاب ویژه قدیمی نباید Level داشته باشد`);
       const publishedAssets=c.resources.filter(r=>r.courseId===cse.id&&r.status==='published');
-      if(cse.status==='published'&&!publishedAssets.length)warnings.push(`${cse.title||cse.id}: Published ولی منبع Published ندارد`);
+      if(cse.status==='published'&&!publishedAssets.length&&!cse.url&&!cse.storagePath)warnings.push(`${cse.title||cse.id}: Published ولی منبع Published ندارد`);
     }
     for(const r of c.resources){
       if(resourceIds.has(r.id))errors.push(`Resource ID تکراری: ${r.id}`);resourceIds.add(r.id);
       if(!r.title)errors.push(`Resource بدون عنوان: ${r.id}`);
+      if(r.status==='published'&&!r.courseId&&BOOK_TYPES.includes(r.type))errors.push(`${r.title||r.id}: فایل کتاب باید به Book Package متصل باشد`);
+      if(r.collection==='media'&&!MEDIA_TYPES.includes(r.type))errors.push(`${r.id}: رسانه باید Film، Series، Podcast یا Article باشد`);
       const course=r.courseId?getCourse(c,r.courseId):null;
       if(r.courseId&&!course)errors.push(`${r.title||r.id}: Course نامعتبر`);
       if(course){
         if(course.collection!==r.collection)errors.push(`${r.title||r.id}: Collection با Course هماهنگ نیست`);
-        if(course.collection==='level'&&course.level!==r.level)errors.push(`${r.title||r.id}: Level با Course هماهنگ نیست`);
+        if(course.level!==r.level)errors.push(`${r.title||r.id}: Level با Course هماهنگ نیست`);
         if(course.collection==='special'&&r.level)errors.push(`${r.title||r.id}: Resource کتاب ویژه نباید Level داشته باشد`);
         if(r.status==='published'&&course.status!=='published')errors.push(`${r.title||r.id}: منبع Published به کتاب غیرمنتشرشده وصل است`);
       }
       if(r.collection==='level'&&!LEVELS.includes(r.level))errors.push(`${r.title||r.id}: Level معتبر ندارد`);
-      if(r.collection==='special'&&!r.courseId)errors.push(`${r.title||r.id}: Resource ویژه باید به یک کتاب ویژه وصل باشد`);
+      if(['special','library'].includes(r.collection)&&!r.courseId)errors.push(`${r.title||r.id}: فایل کتاب باید به کتاب وصل باشد`);
+      if(r.collection==='media'&&r.courseId)errors.push(`${r.id}: رسانه مستقل نباید به کتاب متصل باشد`);
       if(r.url&&!safeExternalUrl(r.url))errors.push(`${r.title||r.id}: URL باید http/https معتبر باشد`);
       if(r.status==='published'&&!r.storagePath&&!safeExternalUrl(r.url))errors.push(`${r.title||r.id}: Published ولی لینک/فایل معتبر ندارد`);
       if(r.linkStatus==='broken')warnings.push(`${r.title||r.id}: لینک Broken علامت خورده`);
     }
     for(const code of LEVELS){
       const core=c.levels[code]?.coreCourseId;
-      if(core){const cc=getCourse(c,core);if(!cc)errors.push(`${code}: Core Course وجود ندارد`);else if(cc.collection!=='level'||cc.level!==code)errors.push(`${code}: Core Course متعلق به این Level نیست`);else if(cc.status!=='published')errors.push(`${code}: Core Book باید Published باشد`)}
+      if(core){const cc=getCourse(c,core);if(!cc)errors.push(`${code}: Core Course وجود ندارد`);else if(!['level','library'].includes(cc.collection)||cc.level!==code)errors.push(`${code}: Core Course متعلق به این Level نیست`);else if(cc.status!=='published')errors.push(`${code}: Core Book باید Published باشد`)}
     }
     return {errors,warnings,ok:errors.length===0};
   }
@@ -179,5 +214,5 @@
 
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){const menu=document.querySelector('.mobile-menu[open]');if(menu){closeMobileMenus();menu.querySelector('summary')?.focus()}}});
   document.addEventListener('click',e=>{if(!e.target.closest('.mobile-menu'))closeMobileMenus()});
-  window.GL={clearCloudContent,isPublicResource,getRoadmap,CONTENT_KEY,LEVELS,SKILLS,COLLECTIONS,clone,esc,num,byOrder,slug,qs,safeLevel,normalizeContent,getContent,saveContent,resetContent,getCourse,getResource,getCoreCourse,getLevelCourses,getSpecialCourses,getPublishedResources,getLevelResources,getCourseResources,getSupplementary,skillCount,activeSkills,safeExternalUrl,resourceHref,courseHref,priorityLabel,pricingLabel,collectionLabel,typeIcon,toast,resourceCard,courseCard,validateContent,boot};
+  window.GL={BOOK_CATEGORIES,BOOK_CATEGORY_LABELS,coverMarkup,hydrateCovers,clearCloudContent,isPublicResource,getRoadmap,CONTENT_KEY,LEVELS,SKILLS,COLLECTIONS,MEDIA_TYPES,BOOK_TYPES,getBooks,getMedia,getFeatured,clone,esc,num,byOrder,slug,qs,safeLevel,normalizeContent,getContent,saveContent,resetContent,getCourse,getResource,getCoreCourse,getLevelCourses,getSpecialCourses,getPublishedResources,getLevelResources,getLibraryResources,getCourseResources,getSupplementary,skillCount,activeSkills,safeExternalUrl,resourceHref,courseHref,priorityLabel,pricingLabel,collectionLabel,typeIcon,toast,resourceCard,courseCard,validateContent,boot};
 })();
