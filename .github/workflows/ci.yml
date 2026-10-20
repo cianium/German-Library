@@ -1,0 +1,58 @@
+name: Source QA and Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Source QA and placeholder build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # These intentionally fake values are for artifact-shape checks only.
+    # Never deploy the generated dist/ or connect this job to a real database.
+    env:
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder_not_a_real_key
+      SITE_URL: https://example.invalid
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Run source and mocked security QA
+        run: npm run qa
+
+      - name: Build using non-production placeholders
+        run: npm run build
+
+      - name: Verify output contains only expected public files
+        run: npm run verify:dist
+
+      - name: Confirm CI placeholders were used
+        run: |
+          grep -Fq 'https://ci-placeholder.supabase.co' dist/assets/runtime-config.js
+          grep -Fq 'sb_publishable_ci_placeholder_not_a_real_key' dist/assets/runtime-config.js
+          # Avoid scanning harmless warning comments for the words "service_role":
+          # tools/dist-qa.mjs already validates credential assignment values.
+          echo 'Verified fake build configuration; artifact is not deployable.'
