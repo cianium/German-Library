@@ -119,3 +119,7 @@ Read the [Changelog](CHANGELOG.md) and [GitHub Releases and publishing policy](d
 Suggestions and reproducible bug reports are welcome through GitHub Issues. Please verify the status and current architecture before proposing changes. This public repository's contents are **not automatically licensed for reuse**; no open-source license is assumed until one is expressly added by the maintainer. For third-party learning materials, link to official publisher resources or use assets you are authorized to share.
 
 **Maintained by [Kian Khayat](https://github.com/cianium).**
+
+## Repository maintenance status
+
+See [repository health — 2026-10-25](docs/REPOSITORY_HEALTH_2026-10-25.md) for the current staging, permissions and release evidence checklist.
