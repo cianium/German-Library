@@ -1,5 +1,5 @@
 window.GERMAN_LIBRARY_CONTENT={
-  meta:{version:7,product:"German Library",note:"Curated resource access site — mobile first, guidance over quantity."},
+  meta:{version:7,product:"Lexipfad",note:"Curated resource access site — mobile first, guidance over quantity."},
   levels:{
     A1:{code:"A1",titleFa:"مبتدی",titleEn:"Beginner",description:"برای شروع: یک کتاب اصلی، شنیدنِ قابل‌فهم و تمرین‌های پایه. اول مسیر اصلی را دنبال کن و بعد فقط برای مهارتی که نیاز داری منبع تکمیلی باز کن.",coreCourseId:"startenwir-a1",order:1},
     A2:{code:"A2",titleFa:"پایه",titleEn:"Elementary",description:"برای تثبیت پایه‌ها و افزایش دامنه‌ی واژگان و مکالمه. کتاب اصلی را محور نگه دار و تمرین شنیداری و آزمون را به آن اضافه کن.",coreCourseId:"startenwir-a2",order:2},

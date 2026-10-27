@@ -1,8 +1,10 @@
 <div align="center">
 
-# German Library
+# Lexipfad
 
-**A mobile-first German learning resource library for CEFR A1–C2.**
+<sub>Formerly “German Library”. The repository, package name and CI badge still use the old technical name.</sub>
+
+**Lexipfad — a mobile-first German learning path and resource library for CEFR A1–C2.**
 
 [![Source QA and Build](https://github.com/cianium/German-Library/actions/workflows/ci.yml/badge.svg)](https://github.com/cianium/German-Library/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/Status-Development%20Preview-E5A50A)

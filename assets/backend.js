@@ -3,7 +3,7 @@
   const BUCKET='resource-files';
   const PENDING_KEY='gl_pending_sync_v7';
   const apiKey=String(cfg.supabasePublishableKey||cfg.supabaseAnonKey||'').trim();
-  let client=null,user=null,role='guest',hydrated=false,status='local',lastError='',syncTimer=null,lastCloudContent=null;
+  let client=null,user=null,role='guest',hydrated=false,hydrateFailed=false,status='local',lastError='',syncTimer=null,lastCloudContent=null;
   const signedCache=new Map();
   let syncFlight=null;
   const pendingKey=()=>`${PENDING_KEY}:${cfg.supabaseUrl}:${user?.id||'guest'}`;
@@ -58,7 +58,7 @@
     const levels={};(rows.levels||[]).forEach(l=>levels[l.code]={code:l.code,titleFa:l.title_fa||'',titleEn:l.title_en||'',description:l.description||'',coreCourseId:null,order:l.sort_order||1});
     const courses=(rows.courses||[]).map(c=>({id:c.id,title:c.title,collection:c.collection||'level',level:c.level_code||'',description:c.description||'',order:c.order_index||1,status:c.status||'published',featured:Boolean(c.featured ?? (c.collection==='special')),bookType:c.book_type||'Sonstige',skills:c.skills||[],coverUrl:c.cover_url||'',coverStoragePath:c.cover_storage_path||'',url:c.book_url||'',storagePath:c.book_storage_path||'',provider:c.provider||''}));
     (rows.courses||[]).forEach(c=>{if(c.is_core&&c.level_code&&levels[c.level_code])levels[c.level_code].coreCourseId=c.id});
-    const resources=(rows.resources||[]).map(r=>({id:r.id,title:r.title,description:r.description||'',collection:r.collection||'level',level:r.level_code||'',courseId:r.course_id||'',type:r.type||'Website',skill:r.skill||'Extra Practice',priority:r.priority||'recommended',provider:r.provider||'',url:r.source_url||r.media_url||'',storagePath:r.source_storage_path||r.media_storage_path||'',pricing:r.pricing||'unknown',featured:Boolean(r.featured),status:r.status||'published',order:r.order_index||1,durationMinutes:Number(r.duration_minutes)||0,linkStatus:r.link_status||'unknown',verifiedAt:r.verified_at||''}));
+    const resources=(rows.resources||[]).map(r=>({id:r.id,title:r.title,description:r.description||'',collection:r.collection||'level',level:r.level_code||'',courseId:r.course_id||'',type:r.type||'Website',skill:r.skill||'Extra Practice',priority:r.priority||'recommended',provider:r.provider||'',url:r.source_url||r.media_url||'',storagePath:r.source_storage_path||r.media_storage_path||'',pricing:r.pricing||'unknown',featured:Boolean(r.featured),status:r.status||'published',order:r.order_index||1,durationMinutes:Number(r.duration_minutes)||0,linkStatus:r.link_status||'unknown',verifiedAt:r.verified_at||'',createdBy:r.created_by||''}));
     return window.GL.normalizeContent({meta:{version:7,source:'supabase'},levels,courses,resources});
   }
   async function fetchContent(){
@@ -105,7 +105,7 @@
     if(!configured()){hydrated=true;setStatus('local');return getStatus()}
     if(!cloudAvailable()){hydrated=true;setStatus('error','Supabase SDK بارگذاری نشد؛ داده محلی استفاده می‌شود.');return getStatus()}
     try{
-      setStatus('loading');await refreshAuth();const remote=await fetchContent();
+      setStatus('loading');hydrateFailed=false;await refreshAuth();const remote=await fetchContent();
       if(remote&&Object.keys(remote.levels).length){
         lastCloudContent=window.GL.clone(remote);
         const pending=loadPending();
@@ -117,7 +117,7 @@
         window.GL.saveContent(remote,{sync:false});
       }
       hydrated=true;setStatus('ready');return getStatus();
-    }catch(e){hydrated=true;setStatus('error',e?.message||String(e));return getStatus()}
+    }catch(e){hydrated=true;hydrateFailed=true;setStatus('error',e?.message||String(e));return getStatus()}
   }
   async function signIn(email,password){
     const c=ensureClient();if(!c)throw new Error('Supabase تنظیم نشده است.');
@@ -168,7 +168,7 @@
     persistPending(normalized,touched);return{content:normalized,touched};
   }
   function scheduleContentSync(content){
-    if(!isCloudMode()||!isStaff())return;let pending;try{pending=recordPending(content)}catch(e){window.GL.toast?.('تغییرات در حافظه است؛ ذخیره محلی ناموفق بود. پیش از خروج Export بگیر.');return}clearTimeout(syncTimer);setStatus('dirty');
+    if(!isCloudMode()||!isStaff())return;if(hydrateFailed){setStatus('error','بارگیری اولیه از Cloud ناموفق بود؛ برای جلوگیری از بازنویسی داده‌ها، صفحه را تازه کن.');window.GL.toast?.('بارگیری Cloud ناموفق بود؛ ذخیره متوقف شد. صفحه را تازه کن.');return}let pending;try{pending=recordPending(content)}catch(e){window.GL.toast?.('تغییرات در حافظه است؛ ذخیره محلی ناموفق بود. پیش از خروج Export بگیر.');return}clearTimeout(syncTimer);setStatus('dirty');
     syncTimer=setTimeout(()=>syncPendingState(pending).catch(e=>setStatus('error',e?.message||String(e))),Number(cfg.syncDebounceMs)||1000);
   }
   async function syncPendingState(){
@@ -193,11 +193,11 @@
   function safeFileName(name){return String(name||'file').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(-120)||'file'}
   function validateUpload(file){
     if(!file)throw new Error('فایلی انتخاب نشده است.');const max=Number(cfg.maxUploadBytes)||262144000;if(file.size>max)throw new Error('حجم فایل بیشتر از حد مجاز است.');
-    const ext=(file.name.split('.').pop()||'').toLowerCase(),allowed=['pdf','mp3','m4a','wav','ogg','mp4','webm','txt','vtt','srt','jpg','jpeg','png','webp'];if(!allowed.includes(ext))throw new Error('نوع این فایل مجاز نیست.');return true;
+    const ext=(file.name.split('.').pop()||'').toLowerCase(),allowed=['pdf','epub','mp3','m4a','wav','ogg','mp4','webm','txt','vtt','srt','jpg','jpeg','png','webp'];if(!allowed.includes(ext))throw new Error('نوع این فایل مجاز نیست.');return true;
   }
   async function uploadResourceFile(resourceId,file){
     const c=ensureClient();if(!c)throw new Error('Cloud Mode فعال نیست.');if(!user||!isStaff())throw new Error('فقط Admin/Editor اجازه Upload دارد.');validateUpload(file);
-    const rid=String(resourceId||'resource').replace(/[^a-zA-Z0-9_-]+/g,'-'),path=`resources/${rid}/${Date.now()}-${safeFileName(file.name)}`;setStatus('syncing');
+    const rid=String(resourceId||'resource').replace(/[^a-zA-Z0-9_-]+/g,'-'),path=`${role==='author'?`authors/${user.id}/`:''}resources/${rid}/${Date.now()}-${safeFileName(file.name)}`;setStatus('syncing');
     const q=await c.storage.from(BUCKET).upload(path,file,{upsert:false,cacheControl:'3600',contentType:file.type||undefined});if(q.error){setStatus('error',q.error.message);throw q.error}setStatus(pendingExists()?'dirty':'synced');return path;
   }
   async function deleteStorageObject(path){const c=ensureClient();if(!c||!path)return;if(!isStaff())throw new Error('اجازه حذف فایل را نداری.');const q=await c.storage.from(BUCKET).remove([path]);if(q.error)throw q.error;signedCache.delete(path)}
@@ -206,7 +206,7 @@
     const q=await c.storage.from(BUCKET).createSignedUrl(path,expiresIn);if(q.error)throw q.error;const url=q.data?.signedUrl||'';signedCache.set(path,{url,expiresAt:now+expiresIn*1000});return url;
   }
   async function resolveResourceUrl(resource){if(!resource)return'';if(resource.storagePath&&isCloudMode()){try{return await signedUrl(resource.storagePath)}catch(e){setStatus('error',e?.message||String(e));return''}}return window.GL.safeExternalUrl(resource.url)}
-  async function forceSync(){if(!isCloudMode())return getStatus();if(!isStaff())throw new Error('دسترسی مدیریت لازم است.');recordPending(window.GL.getContent());return syncPendingState()}
+  async function forceSync(){if(!isCloudMode())return getStatus();if(hydrateFailed)throw new Error('بارگیری اولیه از Cloud ناموفق بود؛ صفحه را تازه کن.');if(!isStaff())throw new Error('دسترسی مدیریت لازم است.');recordPending(window.GL.getContent());return syncPendingState()}
 
   if(cloudAvailable()){
     const c=ensureClient();c.auth.onAuthStateChange((event)=>{

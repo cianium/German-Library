@@ -1,5 +1,5 @@
 GL.boot(()=>{
-  const c=GL.getContent(),level=GL.safeLevel(GL.qs('level')),L=c.levels[level];document.title=`${level} · German Library`;document.getElementById('crumbLevel').textContent=level;document.getElementById('levelTitle').innerHTML=`Deutsch <span class="ltr">${level}</span> · ${GL.esc(L.titleFa)}`;document.getElementById('levelDesc').textContent=L.description;
+  const c=GL.getContent(),level=GL.safeLevel(GL.qs('level')),L=c.levels[level];document.title=`${level} · Lexipfad`;document.getElementById('crumbLevel').textContent=level;document.getElementById('levelTitle').innerHTML=`Deutsch <span class="ltr">${level}</span> · ${GL.esc(L.titleFa)}`;document.getElementById('levelDesc').textContent=L.description;
   const all=`resources.html?level=${encodeURIComponent(level)}`;['allNav','mobileAll','allResourcesLink','searchLink','bottomSearch'].forEach(id=>(document.getElementById(id)||{}).href=all);
   document.getElementById('levelSwitcher').innerHTML=GL.LEVELS.map(code=>`<a class="level-chip ${code===level?'active':''}" href="level.html?level=${code}" ${code===level?'aria-current="page"':''}>${code}</a>`).join('');
   const core=GL.getCoreCourse(c,level),coreSlot=document.getElementById('coreSlot');

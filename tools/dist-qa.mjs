@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root=path.resolve(import.meta.dirname,'..');
 const dist=path.join(root,'dist');
-const required=['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','media.html','special.html','admin.html','login.html','article-studio.html','article-preview.html','404.html','site.webmanifest','assets/app.js','assets/backend.js','assets/article-studio.js','assets/article-preview.js','assets/runtime-config.js','assets/styles.css','data/content.js'];
+const required=['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','roadmap.html','media.html','special.html','admin.html','login.html','article-studio.html','article-preview.html','404.html','site.webmanifest','assets/app.js','assets/backend.js','assets/article-studio.js','assets/article-preview.js','assets/runtime-config.js','assets/styles.css','data/content.js'];
 const forbiddenExt=new Set(['.sql','.md','.bak']);
 const errors=[];
 if(!fs.existsSync(dist)) errors.push('dist/ does not exist');

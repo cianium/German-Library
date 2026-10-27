@@ -6,7 +6,7 @@
   "scripts": {
     "configure": "node scripts/configure.mjs",
     "build": "node scripts/build.mjs",
-    "qa": "python3 tools/qa.py && node tools/content-qa.mjs && node tools/backend-sync-qa.mjs && node tools/v74-qa.mjs && node tools/v3-qa.mjs && node tools/vnext-articles-qa.mjs && node tools/p0-security-navigation-qa.mjs",
+    "qa": "python3 tools/qa.py && node tools/content-qa.mjs && node tools/backend-sync-qa.mjs && node tools/v74-qa.mjs && node tools/v3-qa.mjs && node tools/vnext-articles-qa.mjs && node tools/p0-security-navigation-qa.mjs && node tools/escape-qa.mjs && node tools/s1-author-qa.mjs && node tools/article-sanitize-qa.mjs",
     "release:check": "npm run qa && npm run build && npm run verify:dist",
     "serve": "python3 -m http.server 8080",
     "qa:studio:browser": "python3 tools/article-studio-mobile-qa.py",

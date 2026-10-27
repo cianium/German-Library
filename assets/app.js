@@ -45,7 +45,7 @@
       url:String(x.url||x.mediaUrl||'').trim(),storagePath:String(x.storagePath||x.mediaStoragePath||'').trim(),pricing:['free','paid','unknown'].includes(x.pricing)?x.pricing:'unknown',
       featured:Boolean(x.featured),status:legacyLearningScoped?'archived':(['draft','published','archived'].includes(x.status)?x.status:'published'),order:num(x.order,i+1),
       durationMinutes:Math.max(0,num(x.durationMinutes,x.duration||0)),linkStatus:['unknown','ok','broken'].includes(x.linkStatus)?x.linkStatus:'unknown',
-      verifiedAt:x.verifiedAt?String(x.verifiedAt):''
+      verifiedAt:x.verifiedAt?String(x.verifiedAt):'',createdBy:x.createdBy?String(x.createdBy):''
     };
   }
 
@@ -74,11 +74,11 @@
     try{
       const saved=localStorage.getItem(CONTENT_KEY);if(saved)return normalizeContent(JSON.parse(saved));
       for(const key of LEGACY_CONTENT_KEYS){const legacy=localStorage.getItem(key);if(legacy){const migrated=normalizeContent(JSON.parse(legacy));localStorage.setItem(CONTENT_KEY,JSON.stringify(migrated));return migrated}}
-    }catch(e){console.warn('German Library content cache ignored:',e)}
+    }catch(e){console.warn('Lexipfad content cache ignored:',e)}
     return normalizeContent(window.GERMAN_LIBRARY_CONTENT);
   }
-  function saveContent(content,options={}){const n=normalizeContent(content);if(cloudConfigured())cloudContent=n;else localStorage.setItem(CONTENT_KEY,JSON.stringify(n));if(options.sync!==false)window.GLBackend?.scheduleContentSync?.(n);return n}
-  function resetContent(){localStorage.removeItem(CONTENT_KEY);LEGACY_CONTENT_KEYS.forEach(k=>localStorage.removeItem(k))}
+  function saveContent(content,options={}){const n=normalizeContent(content);if(cloudConfigured())cloudContent=n;else{try{localStorage.setItem(CONTENT_KEY,JSON.stringify(n))}catch(e){toast('ذخیره محلی ممکن نشد؛ پیش از بستن صفحه JSON را Export کن.')}}if(options.sync!==false)window.GLBackend?.scheduleContentSync?.(n);return n}
+  function resetContent(){try{localStorage.removeItem(CONTENT_KEY);LEGACY_CONTENT_KEYS.forEach(k=>localStorage.removeItem(k))}catch(e){}}
 
   function getCourse(c,id){return c.courses.find(x=>x.id===id)}
   function getResource(c,id){return c.resources.find(x=>x.id===id)}
