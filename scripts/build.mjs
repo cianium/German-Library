@@ -31,7 +31,7 @@ const siteUrl=normalizeSiteUrl(rawSite);
 
 fs.rmSync(out,{recursive:true,force:true});
 fs.mkdirSync(out,{recursive:true});
-for(const file of ['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','media.html','special.html','admin.html','login.html','signup.html','author-request.html','article-studio.html','article-preview.html','404.html','site.webmanifest','robots.txt','_headers']){
+for(const file of ['index.html','level.html','course.html','resource.html','resources.html','books.html','levels.html','media.html','special.html','admin.html','login.html','reset-password.html','signup.html','author-request.html','article-studio.html','article-preview.html','404.html','site.webmanifest','robots.txt','_headers']){
   fs.copyFileSync(path.join(root,file),path.join(out,file));
 }
 for(const dir of ['assets','data']) fs.cpSync(path.join(root,dir),path.join(out,dir),{recursive:true});
@@ -50,7 +50,7 @@ const config=`/* Generated production runtime config. Never place a Supabase sec
 fs.writeFileSync(path.join(out,'assets/runtime-config.js'),config);
 
 if(siteUrl){
-  const robots=`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /login.html\nDisallow: /article-studio.html\nDisallow: /article-preview.html\nDisallow: /api/\n\nSitemap: ${siteUrl}/sitemap.xml\n`;
+  const robots=`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /login.html\nDisallow: /reset-password.html\nDisallow: /article-studio.html\nDisallow: /article-preview.html\nDisallow: /api/\n\nSitemap: ${siteUrl}/sitemap.xml\n`;
   fs.writeFileSync(path.join(out,'robots.txt'),robots);
 }else{
   console.warn('SITE_URL/VERCEL_URL is unavailable; sitemap.xml was not generated for this build.');

@@ -1,5 +1,5 @@
-German Library v3.2.1-p0-preview
-Based on: v3.2.0 Mobile Article Studio Preview (derived from V7.4)
-Source-only P0 patch; not deployed
+Lexipfad v3.3.0-mobile-preview
+Based on: v3.2.1 P0 source preview (derived from V7.4)
+Mobile navigation and workspace continuation; not deployed
 Mandatory after vNext article migration: backend/migrations/20261015_p0_article_source_read_access.sql
 Live RLS/role test pending; see docs/P0_SECURITY_AND_NAV_REPORT_FA.md

@@ -2,6 +2,7 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import re
+import shutil
 ROOT=Path(__file__).resolve().parent.parent
 STORE_JS='''<script>window.__glDemoStore=window.__glDemoStore||{};Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>Object.prototype.hasOwnProperty.call(window.__glDemoStore,k)?window.__glDemoStore[k]:null,setItem:(k,v)=>window.__glDemoStore[k]=String(v),removeItem:k=>delete window.__glDemoStore[k]}});try{history.replaceState=()=>{}}catch(e){}</script>'''
 def markup(name):
@@ -14,12 +15,12 @@ def markup(name):
  return s.replace('<body>','<body>'+STORE_JS,1)
 errors=[];bad=[];count=0
 with sync_playwright() as pw:
- browser=pw.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
+ browser=pw.chromium.launch(executable_path=shutil.which('chromium'),args=['--no-sandbox','--disable-dev-shm-usage'])
  page=browser.new_page(viewport={'width':390,'height':844});page.on('pageerror',lambda e:errors.append(str(e)))
  page.set_default_timeout(5000)
  for width in [320,390,768,1024,1440]:
   page.set_viewport_size({'width':width,'height':850})
-  for name in ['index.html','levels.html','level.html','books.html','media.html','special.html','course.html','resources.html','admin.html']:
+  for name in ['index.html','levels.html','level.html','books.html','media.html','special.html','course.html','resources.html','admin.html','reset-password.html']:
    page.set_content(markup(name),wait_until='domcontentloaded');page.wait_for_timeout(75)
    if page.evaluate('document.documentElement.scrollWidth>window.innerWidth+1'):bad.append((width,name,page.evaluate('[document.documentElement.scrollWidth,innerWidth]')))
    count+=1
@@ -27,9 +28,11 @@ with sync_playwright() as pw:
  page.set_content(markup('books.html'));page.wait_for_timeout(120)
  assert page.locator('#booksShelves .gl-book-card').count()==4
  assert page.locator('#featuredBooks .gl-book-card').count()==2
- assert page.locator('.mobile-bottom-nav a').all_text_contents()==['سطح','مکمل','خانه','کتابخانه']
+ assert page.locator('.mobile-bottom-nav a').all_text_contents()==['خانه','سطوح','کتابخانه','رسانه','مقالات']
  page.set_content(markup('levels.html'));page.wait_for_timeout(110)
  assert page.locator('#levelsPageGrid .level-card').count()==6
+ page.set_content(markup('reset-password.html'));page.wait_for_timeout(75)
+ assert page.locator('#resetRequestForm').is_visible()
  page.set_content(markup('level.html'));page.wait_for_timeout(120)
  assert page.locator('#recommendedSlot .resource-card').count()>0
  page.set_content(markup('admin.html'));page.wait_for_timeout(200)

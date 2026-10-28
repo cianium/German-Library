@@ -1,6 +1,6 @@
-# German Library v3.2.1-p0-preview — Security & SSR Navigation Patch
+# Lexipfad v3.3.0 Mobile Preview — Navigation & Workspaces
 
-**این نسخه Source-only است، Production نیست.** پچ امنیتی جدید `backend/migrations/20261015_p0_article_source_read_access.sql` باید **پس از** Migration مقالات vNext روی Supabase Development اجرا و با حساب‌های واقعی آزمایش شود. بدون اجرای SQL، مشکل دسترسی به نسخه در حال ویرایش حل نشده است. مسیرهای SSR مقالات چهارمقصدی و هماهنگ با V7.5 شده‌اند؛ SEO URL خالی هم اصلاح شده است. گزارش کامل: `docs/P0_SECURITY_AND_NAV_REPORT_FA.md`.
+**این نسخه Source-only Preview است، Production نیست.** ناوبری عمومی پنج‌مقصدی، تجربه موبایل عمومی، Author Studio و دسترسی عملیاتی Admin بهبود یافته‌اند. پچ امنیتی `backend/migrations/20261015_p0_article_source_read_access.sql` باید **پس از** Migration مقالات vNext روی Supabase Development اجرا و با حساب‌های واقعی آزمایش شود. بدون اجرای SQL و role-matrix زنده، امنیت استقرار تأیید نشده است. گزارش این مرحله: `docs/V3_3_CONTINUATION_REPORT_FA.md`.
 
 تست‌ها: `npm run qa`، `npm run qa:ssr:browser` و `npm run qa:studio:browser`. Build آزمایشی جای تست دیتابیس واقعی را نمی‌گیرد.
 
@@ -8,8 +8,11 @@
 
 # German Library v3.2.0-preview — Article Studio Mobile Increment
 
-**این بسته یک توسعه افزایشی است و جایگزین کامل نیازمندی‌های V7.5 نیست.**
-- ناوبری عمومی چهارمقصدی V7.5 با Articles زیر Extras؛ پنل مدیریت تغییر نکرده است.
+**این بسته یک توسعه افزایشی است و بازنویسی محصول نیست.**
+- ناوبری عمومی پنج‌مقصدی: خانه، سطوح، کتابخانه، رسانه و مقالات.
+- Floating Glass فقط برای ناوبری و ابزارهای شناور؛ سطوح محتوایی مات و خوانا مانده‌اند.
+- Author Studio موبایل دارای ناوبری اختصاصی، Focus Mode و action dock سازگار با Visual Viewport است.
+- Admin به Article Studio و شمار واقعی صف بررسی دسترسی مستقیم دارد؛ مجوز نهایی همچنان با RLS/RPC است.
 - جدول‌ساز، ویرایش لینک داخلی/خارجی، Alt و Caption جداگانه و ویرایش تصویر موجود.
 - اصلاح باگ حفظ متادیتا هنگام باز کردن مقاله و بهبود SEO تصویر.
 - دستور تست: `npm run qa`؛ تست UI با Chromium و Playwright: `npm run qa:studio:browser`.

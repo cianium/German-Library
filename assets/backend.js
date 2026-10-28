@@ -129,6 +129,14 @@
     if(q.data.session){user=q.data.user;await refreshAuth()}
     return q.data;
   }
+  async function requestPasswordReset(email,redirectTo){
+    const c=ensureClient();if(!c)throw new Error('Supabase تنظیم نشده است.');
+    const q=await c.auth.resetPasswordForEmail(String(email||'').trim(),{redirectTo});if(q.error)throw q.error;return true;
+  }
+  async function updatePassword(password){
+    const c=ensureClient();if(!c)throw new Error('Supabase تنظیم نشده است.');
+    const q=await c.auth.updateUser({password});if(q.error)throw q.error;return q.data;
+  }
   async function signOut(){
     const c=ensureClient();if(c){const q=await c.auth.signOut();if(q.error)throw q.error}
     clearTimeout(syncTimer);signedCache.clear();window.GL.clearCloudContent?.();user=null;role='guest';hydrated=false;lastCloudContent=null;setStatus('ready');
@@ -192,15 +200,22 @@
 
   function safeFileName(name){return String(name||'file').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(-120)||'file'}
   function validateUpload(file){
-    if(!file)throw new Error('فایلی انتخاب نشده است.');const max=Number(cfg.maxUploadBytes)||262144000;if(file.size>max)throw new Error('حجم فایل بیشتر از حد مجاز است.');
-    const ext=(file.name.split('.').pop()||'').toLowerCase(),allowed=['pdf','mp3','m4a','wav','ogg','mp4','webm','txt','vtt','srt','jpg','jpeg','png','webp'];if(!allowed.includes(ext))throw new Error('نوع این فایل مجاز نیست.');return true;
+    if(!file)throw new Error('فایلی انتخاب نشده است.');
+    const ext=(file.name.split('.').pop()||'').toLowerCase();
+    const types={pdf:'application/pdf',epub:'application/epub+zip',mp3:'audio/mpeg',m4a:'audio/mp4',wav:'audio/wav',ogg:'audio/ogg',mp4:'video/mp4',webm:'video/webm',txt:'text/plain',vtt:'text/vtt',srt:'application/x-subrip',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+    const contentType=types[ext];if(!contentType)throw new Error('نوع این فایل مجاز نیست.');
+    const configuredMax=Number(cfg.maxUploadBytes)||262144000;
+    const categoryMax=['jpg','jpeg','png','webp'].includes(ext)?10485760:['txt','vtt','srt'].includes(ext)?5242880:['pdf','epub'].includes(ext)?104857600:['mp3','m4a','wav','ogg'].includes(ext)?157286400:262144000;
+    if(file.size>Math.min(configuredMax,categoryMax))throw new Error('حجم فایل برای این نوع بیشتر از حد مجاز است.');
+    if(file.type&&file.type!==contentType&&!(['m4a','wav'].includes(ext)&&['audio/x-m4a','audio/x-wav'].includes(file.type)))throw new Error('پسوند و نوع واقعی فایل با هم سازگار نیستند.');
+    return contentType;
   }
   async function uploadResourceFile(resourceId,file){
-    const c=ensureClient();if(!c)throw new Error('Cloud Mode فعال نیست.');if(!user||!isStaff())throw new Error('فقط Admin/Editor اجازه Upload دارد.');validateUpload(file);
-    const rid=String(resourceId||'resource').replace(/[^a-zA-Z0-9_-]+/g,'-'),path=`resources/${rid}/${Date.now()}-${safeFileName(file.name)}`;setStatus('syncing');
-    const q=await c.storage.from(BUCKET).upload(path,file,{upsert:false,cacheControl:'3600',contentType:file.type||undefined});if(q.error){setStatus('error',q.error.message);throw q.error}setStatus(pendingExists()?'dirty':'synced');return path;
+    const c=ensureClient();if(!c)throw new Error('Cloud Mode فعال نیست.');if(!user||!isStaff())throw new Error('این حساب اجازه بارگذاری فایل ندارد.');const contentType=validateUpload(file);
+    const rid=String(resourceId||'resource').replace(/[^a-zA-Z0-9_-]+/g,'-'),prefix=role==='author'?`authors/${user.id}`:'resources',path=`${prefix}/${rid}/${Date.now()}-${safeFileName(file.name)}`;setStatus('syncing');
+    const q=await c.storage.from(BUCKET).upload(path,file,{upsert:false,cacheControl:'3600',contentType});if(q.error){setStatus('error',q.error.message);throw q.error}setStatus(pendingExists()?'dirty':'synced');return path;
   }
-  async function deleteStorageObject(path){const c=ensureClient();if(!c||!path)return;if(!isStaff())throw new Error('اجازه حذف فایل را نداری.');const q=await c.storage.from(BUCKET).remove([path]);if(q.error)throw q.error;signedCache.delete(path)}
+  async function deleteStorageObject(path){const c=ensureClient();if(!c||!path)return;if(!isStaff())throw new Error('اجازه حذف فایل را نداری.');if(role==='author'&&!String(path).startsWith(`authors/${user.id}/`))throw new Error('نویسنده فقط می‌تواند فایل‌های پوشه خودش را حذف کند.');const q=await c.storage.from(BUCKET).remove([path]);if(q.error)throw q.error;signedCache.delete(path)}
   async function signedUrl(path,expiresIn=900){
     const c=ensureClient();if(!c||!path)return'';const now=Date.now(),cached=signedCache.get(path);if(cached&&cached.expiresAt>now+30000)return cached.url;
     const q=await c.storage.from(BUCKET).createSignedUrl(path,expiresIn);if(q.error)throw q.error;const url=q.data?.signedUrl||'';signedCache.set(path,{url,expiresAt:now+expiresIn*1000});return url;
@@ -217,5 +232,5 @@
     });
     window.addEventListener('online',()=>{if(isStaff()&&pendingExists())retryPendingSync().catch(e=>setStatus('error',e?.message||String(e)))});
   }
-  window.GLBackend={BUCKET,configured,demoAllowed,isCloudMode,currentUser,currentRole,isStaff,getClient:ensureClient,getStatus,hydrate,refreshAuth,requireStaff,signIn,signUp,signOut,scheduleContentSync,syncContentSnapshot,forceSync,retryPendingSync,uploadResourceFile,deleteStorageObject,resolveResourceUrl,signedUrl};
+  window.GLBackend={BUCKET,configured,demoAllowed,isCloudMode,currentUser,currentRole,isStaff,getClient:ensureClient,getStatus,hydrate,refreshAuth,requireStaff,signIn,signUp,requestPasswordReset,updatePassword,signOut,scheduleContentSync,syncContentSnapshot,forceSync,retryPendingSync,uploadResourceFile,deleteStorageObject,resolveResourceUrl,signedUrl};
 })();
