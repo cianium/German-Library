@@ -13,7 +13,9 @@
     search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>',
     user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
     sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
-    moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8.1 8.1 0 1 0 20 14.5Z"/>'
+    moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8.1 8.1 0 1 0 20 14.5Z"/>',
+    instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="1" fill="currentColor" stroke="none"/>',
+    telegram:'<path d="m3 11 17-7-4 16-5-5-3 3 1-5z"/><path d="m9 13 7-6"/>'
   };
   const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.home}</svg>`;
   function applyTheme(next){document.documentElement.dataset.theme=next;try{localStorage.setItem(key,next)}catch(e){};document.querySelectorAll('[data-theme-toggle]').forEach(b=>{b.innerHTML=svg(next==='dark'?'sun':'moon');b.setAttribute('aria-label',next==='dark'?'فعال کردن حالت روشن':'فعال کردن حالت تیره');b.title=b.getAttribute('aria-label')});document.querySelector('meta[name=theme-color]')?.setAttribute('content',next==='dark'?'#0d1a21':'#f8f5ee')}
@@ -23,7 +25,7 @@
   applyTheme(document.documentElement.dataset.theme);
   const navItems=[['index.html','home','خانه'],['levels.html','levels','سطوح'],['books.html','library','کتابخانه'],['media.html','media','رسانه'],['articles','articles','مقالات']];
   const current=location.pathname.split('/').pop()||'index.html';
-  const workspacePages=new Set(['admin.html','article-studio.html','article-preview.html','login.html','signup.html','author-request.html']);
+  const workspacePages=new Set(['admin.html','article-studio.html','article-preview.html','login.html','signup.html','author-request.html','reset-password.html']);
   const isWorkspace=workspacePages.has(current);
   const activeKey=['levels.html','level.html','resources.html','resource.html','roadmap.html'].includes(current)?'levels':current==='media.html'?'media':current==='books.html'||current==='course.html'||current==='special.html'?'library':current==='articles'||current==='article.html'||location.pathname.startsWith('/articles')?'articles':'home';
   if(!isWorkspace){
@@ -44,8 +46,12 @@
   });
   document.querySelectorAll('.desktop-nav').forEach(nav=>{if(nav.closest('.admin-page'))return;nav.innerHTML=navItems.map(([href,icon,label])=>`<a href="${href}" ${activeKey===icon?'class="active" aria-current="page"':''}>${label}</a>`).join('')});
   document.querySelectorAll('.mobile-menu-panel').forEach(nav=>{nav.innerHTML=navItems.map(([href,icon,label])=>`<a href="${href}" ${activeKey===icon?'class="active" aria-current="page"':''}>${label}</a>`).join('')+'<a href="special.html">منتخب‌های ویژه</a>'});
-  // Public identity links are deliberately explicit; unspecified social accounts are not invented.
+  const socialLink=(url,icon,label)=>url
+    ?`<a class="footer-social-link" href="${GL.esc(url)}" target="_blank" rel="noopener noreferrer">${svg(icon)}<span>${label}</span></a>`
+    :`<span class="footer-social-link is-disabled" aria-disabled="true" title="نشانی رسمی هنوز ثبت نشده">${svg(icon)}<span>${label}</span></span>`;
+  // Social URLs are build configuration; unspecified accounts are never invented.
   document.querySelectorAll('footer.footer').forEach(footer=>{
-    footer.innerHTML=`<div class="footer-grid"><div class="footer-intro"><a class="footer-brand" href="index.html"><span class="brand-mark"><img src="assets/brand/lexipfad-icon.png" alt="" width="29" height="26" decoding="async"></span><span class="brand-title"><img class="brand-word brand-word-light" src="assets/brand/lexipfad-wordmark-light.png" alt="Lexipfad" width="85" height="24" decoding="async"><img class="brand-word brand-word-dark" src="assets/brand/lexipfad-wordmark-dark.png" alt="" width="85" height="24" decoding="async"></span></a><p>کتاب‌ها در کتابخانه، تمرین‌ها در هر سطح و رسانه‌ها در بخش جدا؛ یادگیری بدون سردرگمی.</p></div><nav class="footer-links" aria-label="پیوندهای فوتر"><a href="levels.html">سطوح A1–C2</a><a href="roadmap.html">نقشه راه</a><a href="books.html">کتابخانه کتاب‌ها</a><a href="resources.html">تمرین مهارت‌ها</a><a href="media.html">رسانه و مطالعه</a><a href="articles">مقالات آموزشی</a><a href="signup.html">همکاری به‌عنوان نویسنده</a><a href="special.html">منتخب‌های ویژه</a></nav><div class="footer-social"><strong>ارتباط با سازنده</strong><a href="https://github.com/cianium" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a href="https://kiankhayat.me" target="_blank" rel="noopener noreferrer">Website ↗</a></div></div><div class="footer-bottom"><span>Lexipfad · v3.3</span><span>Designed & built by <strong class="footer-signature">Kian</strong></span></div>`;
+    const config=window.GL_CONFIG||{};
+    footer.innerHTML=`<div class="footer-grid"><div class="footer-intro"><a class="footer-brand" href="index.html"><span class="brand-mark"><img src="assets/brand/lexipfad-icon.png" alt="" width="29" height="26" decoding="async"></span><span class="brand-title"><img class="brand-word brand-word-light" src="assets/brand/lexipfad-wordmark-light.png" alt="Lexipfad" width="85" height="24" decoding="async"><img class="brand-word brand-word-dark" src="assets/brand/lexipfad-wordmark-dark.png" alt="" width="85" height="24" decoding="async"></span></a><p>کتاب‌ها در کتابخانه، تمرین‌ها در هر سطح و رسانه‌ها در بخش جدا؛ یادگیری بدون سردرگمی.</p></div><nav class="footer-links" aria-label="پیوندهای فوتر"><a href="levels.html">سطوح A1–C2</a><a href="roadmap.html">نقشه راه</a><a href="books.html">کتابخانه</a><a href="resources.html">تمرین‌ها</a><a href="media.html">رسانه</a><a href="articles">مقالات</a></nav><div class="footer-social"><strong>شبکه‌های اجتماعی</strong><div class="footer-social-row">${socialLink(config.instagramUrl,'instagram','اینستاگرام')}${socialLink(config.telegramUrl,'telegram','تلگرام')}</div></div></div><div class="footer-bottom"><span>Lexipfad · v3.4</span><span>Designed & built by <strong class="footer-signature">Kian</strong></span></div>`;
   });
 })();

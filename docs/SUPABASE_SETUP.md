@@ -83,3 +83,36 @@ The schema contains compatibility changes for the prior v6/v7 model, but a fresh
 ## P0 Security Patch — 2026-10-15
 
 پس از Migration اصلی مقالات (`backend/migrations/20261014_vnext_articles.sql`) باید `backend/migrations/20261015_p0_article_source_read_access.sql` اجرا شود. این Patch دسترسی به رکورد خام نسخه‌های تأییدنشده را برای کاربران واردشده محدود می‌کند. سپس `backend/validation/p0_article_access_check.sql` را اجرا کرده و ماتریس واقعی نقش‌ها را مطابق `docs/P0_SECURITY_AND_NAV_REPORT_FA.md` آزمایش کن. وجود سورس Patch به معنی تغییر دیتابیس جاری نیست.
+
+## v3.4 Public Article Snapshot Hardening — 2026-10-29
+
+پس از P0 و Migrationهای مالکیت/Production Hardening، فایل
+`backend/migrations/20261029_v34_public_article_snapshots.sql` را اجرا کن. این Migration قرارداد فعلی Viewهای `published_articles` و
+`article_redirects` را حفظ می‌کند، ولی داده عمومی را به جدول‌های RLS-backed
+منتقل و هر دو View را `security_invoker` می‌کند.
+
+سپس `backend/validation/v34_public_article_snapshots_check.sql`، Security
+Advisor و ماتریس Guest/Learner/Author مالک/Author غیرمالک/Editor/Admin را اجرا
+کن. به‌خصوص تأیید کن که کاربران عمومی فقط Snapshot بازبینی‌شده را می‌بینند و
+از `articles` به Source تازه و منتشرنشده دسترسی ندارند.
+
+این Migration در ۲۰۲۶-۱۰-۲۹ با پذیرش صریح ریسک اجرای بدون Backup روی پروژه
+آزمایشی `ykxvgtugtvmtwdackzlc` اعمال شد. Validation زنده، Advisor، تست نقش‌های
+عمومی و چرخه تراکنشی انتشار پاس شدند. برای محیط Production واقعی همچنان Backup
+و محیط پیش‌نمایش مستقل توصیه می‌شود.
+
+Migration تکمیلی `20261029_v34_admin_rpc_invoker.sql` نیز روی همین پروژه اعمال
+شد. RPCهای مدیریت نقش API قبلی خود را حفظ می‌کنند، اما دیگر owner-privileged
+نیستند؛ دسترسی Update/Insert آن‌ها با Grant ستون‌محور و RLS مخصوص Admin کنترل
+می‌شود. Security Advisor پس از اجرا هیچ Warning تابع privileged عمومی ندارد.
+Follow-up با نام `20261029_v34_admin_role_guard.sql` نیز Policyهای permissive
+پروفایل را ادغام و تغییر مستقیم Role توسط Owner غیرAdmin را با Trigger خصوصی
+مسدود می‌کند. تست زندهٔ self-promotion رد شد و Admin اصلی پس از Rollback محفوظ ماند.
+
+## Hosting portability
+
+Frontend باید فقط از `SUPABASE_URL`، `SUPABASE_PUBLISHABLE_KEY` و `SITE_URL`
+در زمان Build استفاده کند. هیچ Secret یا `service_role` نباید روی هاست یا داخل
+Bundle عمومی قرار گیرد. این قرارداد اجازه می‌دهد خروجی روی Vercel یا یک هاست
+ایرانی سازگار با فایل استاتیک/Node میزبانی شود؛ قابلیت SSR مقالات پیش از انتخاب
+هاست باید با امکانات Node/Serverless همان سرویس تطبیق داده شود.

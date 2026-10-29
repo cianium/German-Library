@@ -79,7 +79,7 @@ if 'supabasePublishableKey' not in cfg: errors.append('assets/runtime-config.js:
 manifest=json.loads((ROOT/'site.webmanifest').read_text(encoding='utf-8'))
 if manifest.get('display')!='standalone': warnings.append('site.webmanifest: display is not standalone')
 
-for required in ['README.md','backend/supabase-schema.sql','backend/seed.sql','backend/migrations/20261027_s1_author_resource_ownership.sql','backend/validation/s1_author_ownership_check.sql','backend/migrations/20261028_v33_production_hardening.sql','backend/validation/v33_production_hardening_check.sql','docs/SUPABASE_SETUP.md','vercel.json','_headers','assets/vendor/supabase-js-2.117.2.js','package-lock.json']:
+for required in ['README.md','.env.example','backend/supabase-schema.sql','backend/seed.sql','backend/migrations/20261027_s1_author_resource_ownership.sql','backend/validation/s1_author_ownership_check.sql','backend/migrations/20261028_v33_production_hardening.sql','backend/validation/v33_production_hardening_check.sql','backend/migrations/20261029_v34_public_article_snapshots.sql','backend/validation/v34_public_article_snapshots_check.sql','backend/migrations/20261029_v34_admin_rpc_invoker.sql','backend/migrations/20261029_v34_admin_role_guard.sql','backend/validation/v34_admin_rpc_invoker_check.sql','docs/SUPABASE_SETUP.md','vercel.json','_headers','assets/vendor/supabase-js-2.117.2.js','package-lock.json']:
     if not (ROOT/required).exists(): errors.append(f'missing release file: {required}')
 
 print(f'Static QA: {len(errors)} error(s), {len(warnings)} warning(s)')

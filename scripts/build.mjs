@@ -28,6 +28,20 @@ const normalizeSiteUrl=value=>{
   try{const u=new URL(candidate);return `${u.protocol}//${u.host}`;}catch{return ''}
 };
 const siteUrl=normalizeSiteUrl(rawSite);
+const normalizeSocialUrl=(raw,allowedHosts,name)=>{
+  const value=String(raw||'').trim();
+  if(!value)return '';
+  try{
+    const url=new URL(value);
+    if(url.protocol!=='https:'||!allowedHosts.has(url.hostname.toLowerCase())||url.pathname==='/'||!url.pathname)throw new Error();
+    return url.href;
+  }catch{
+    console.error(`${name} must be an official HTTPS profile URL.`);
+    process.exit(1);
+  }
+};
+const instagramUrl=normalizeSocialUrl(process.env.INSTAGRAM_URL||'https://instagram.com/lexipfad',new Set(['instagram.com','www.instagram.com']),'INSTAGRAM_URL');
+const telegramUrl=normalizeSocialUrl(process.env.TELEGRAM_URL||'https://t.me/lexipfad',new Set(['t.me','www.t.me','telegram.me']),'TELEGRAM_URL');
 
 fs.rmSync(out,{recursive:true,force:true});
 fs.mkdirSync(out,{recursive:true});
@@ -46,7 +60,7 @@ catalog.resources=catalog.resources.filter(r=>r.status==='published'&&(!r.course
 for(const level of Object.values(catalog.levels))if(!publishedCourseIds.has(level.coreCourseId))level.coreCourseId=null;
 fs.writeFileSync(path.join(out,'data/content.js'),'window.GERMAN_LIBRARY_CONTENT='+JSON.stringify(catalog)+';\n');
 
-const config=`/* Generated production runtime config. Never place a Supabase secret/service_role key here. */\nwindow.GL_CONFIG={\n  allowDemoAdmin:false,\n  supabaseUrl:${JSON.stringify(supabaseUrl)},\n  supabasePublishableKey:${JSON.stringify(publishableKey)},\n  supabaseAnonKey:"",\n  syncDebounceMs:350,\n  maxUploadBytes:262144000\n};\n`;
+const config=`/* Generated production runtime config. Never place a Supabase secret/service_role key here. */\nwindow.GL_CONFIG={\n  allowDemoAdmin:false,\n  supabaseUrl:${JSON.stringify(supabaseUrl)},\n  supabasePublishableKey:${JSON.stringify(publishableKey)},\n  supabaseAnonKey:"",\n  instagramUrl:${JSON.stringify(instagramUrl)},\n  telegramUrl:${JSON.stringify(telegramUrl)},\n  syncDebounceMs:350,\n  maxUploadBytes:262144000\n};\n`;
 fs.writeFileSync(path.join(out,'assets/runtime-config.js'),config);
 
 if(siteUrl){

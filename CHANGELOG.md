@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.4.0
+
+- Hardened public article snapshots, redirects and role administration with Supabase RLS.
+- Added guarded `SECURITY INVOKER` admin RPCs and blocked direct role self-promotion.
+- Completed five-destination mobile glass navigation and mobile Author/Admin workflows.
+- Added horizontal media shelves and a two-column footer with official Lexipfad social links.
+- Verified production build, dist output and Chromium responsive suites.
+
 ## Unreleased — S1/S2 fixes + Roadmap
 - **S2:** breadcrumb on `resource.html` now escapes the book title (stored HTML injection); duplicate course crumb removed (B2). Regression test `tools/escape-qa.mjs`.
 - **S1:** new migration `20261027_s1_author_resource_ownership.sql` (+ `backend/validation/s1_author_ownership_check.sql`, `tools/s1-author-qa.mjs`): Authors limited to their own draft resources and `authors/<uid>/` Storage paths; publishing is Editor/Admin only. Client uploads use the author prefix; the Published option is hidden for Authors. **Not applied to any database — run on Staging with real Author/Editor logins first.**

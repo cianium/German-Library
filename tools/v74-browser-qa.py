@@ -55,7 +55,7 @@ with sync_playwright() as pw:
  assert record and record['collection']=='media' and record['featured'],record
  # switching to reader page via content reset can still test independent media controller with shared storage using injection
  page.set_content(markup('media.html'));page.wait_for_timeout(100)
- assert page.locator('#mediaGrid .resource-card').count()>=1,'New film visible in media tab'
+ assert page.locator('#mediaShelves .resource-card').count()>=1,'New film visible in media shelf'
  page.set_content(markup('special.html'));page.wait_for_timeout(100)
  assert page.get_by_text('Test Film').count()>=1,'Featured media displayed'
  page.set_content(markup('admin.html'));page.wait_for_timeout(100)

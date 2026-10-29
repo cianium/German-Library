@@ -7,14 +7,14 @@
 **Lexipfad — a mobile-first German learning path and resource library for CEFR A1–C2.**
 
 [![Source QA and Build](https://github.com/cianium/German-Library/actions/workflows/ci.yml/badge.svg)](https://github.com/cianium/German-Library/actions/workflows/ci.yml)
-![Status](https://img.shields.io/badge/Status-Production%20Candidate-E5A50A)
-![Version](https://img.shields.io/badge/Source-3.3.0--production--candidate-147D8B)
+![Status](https://img.shields.io/badge/Status-Deployment%20Ready-E5A50A)
+![Version](https://img.shields.io/badge/Source-3.4.0--final-147D8B)
 
 **Books & learning resources · Articles · Content management · Multi-device experience**
 
 </div>
 
-> **Release status:** v3.3 is a tested **production candidate**. Source QA, security regression tests, build/dist checks, and Chromium suites pass locally. Live Supabase migration validation and Vercel preview/production verification remain separate release gates and are recorded during rollout.
+> **Release status:** v3.4 is the tested final source package. Source QA, security regression tests, build/dist checks, Chromium suites and live Supabase migrations pass. Domain-specific hosting verification remains a deployment gate because the final Iranian host and domain are not selected yet.
 
 ## What this project does
 
@@ -47,6 +47,16 @@ python3 -m http.server 8080
 ```
 
 Open **http://localhost:8080** to view the static pages. This local static server does **not** execute Vercel article routes (`/articles`, `/articles/:slug`, `/sitemap.xml`), nor does it provision Supabase. Local demo behavior is **not** a production authentication or access-control test.
+
+For a local production-shaped build, copy `.env.example` to the ignored
+`.env.local`, fill it with the project URL and a modern **publishable** key, then run:
+
+```bash
+npm run release:check:local
+```
+
+`build:local` loads `.env.local` with Node's built-in environment-file support.
+Never place a Supabase secret/service-role key in that file or in frontend code.
 
 ## Quality checks
 
@@ -85,6 +95,8 @@ Before enabling a real deployment, follow the documented migration order and ver
 Do not apply a patch blindly to Production. Back up data, check migration history, and complete positive/negative access tests in Staging first. The patch being committed to GitHub is **not** proof it is deployed.
 
 - [P0 security and SSR navigation report (FA)](docs/P0_SECURITY_AND_NAV_REPORT_FA.md)
+- [Full v3.4 audit, role matrix and implementation roadmap (FA)](docs/V3_4_FULL_AUDIT_AND_ROADMAP_FA.md)
+- [v3.4 phase 0 security foundation report (FA)](docs/V3_4_PHASE_0_SECURITY_FOUNDATION_FA.md)
 - [Supabase setup and staged verification](docs/SUPABASE_SETUP.md)
 - [QA and historical technical audits](docs/TECHNICAL_AUDIT.md)
 - [Release checklist (FA)](docs/RELEASE_CHECKLIST_FA.md)
@@ -112,7 +124,7 @@ Do not apply a patch blindly to Production. Back up data, check migration histor
 
 ## Versioning and historical releases
 
-The current `package.json` source version is **`3.3.0-production-candidate`**. The immediate pre-v3.3 snapshot is preserved as GitHub release/tag **`v3.2.1-p0-preview`**. Older historical tags are not moved or rewritten.
+The current `package.json` source version is **`3.4.0`**. The immediate pre-v3.3 snapshot is preserved as GitHub release/tag **`v3.2.1-p0-preview`**. Older historical tags are not moved or rewritten.
 
 Read the [Changelog](CHANGELOG.md) and [GitHub Releases and publishing policy](docs/RELEASES.md). A CI-green badge does **not** mean the project is production-ready.
 

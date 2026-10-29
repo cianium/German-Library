@@ -11,6 +11,7 @@ const migration=read('backend/migrations/20261027_s1_author_resource_ownership.s
 const validation=read('backend/validation/s1_author_ownership_check.sql');
 const hardening=read('backend/migrations/20261028_v33_production_hardening.sql');
 const hardeningValidation=read('backend/validation/v33_production_hardening_check.sql');
+const invokerRpc=read('backend/migrations/20261029_v34_admin_rpc_invoker.sql');
 const backend=read('assets/backend.js');
 const vendor=fs.readFileSync(new URL('assets/vendor/supabase-js-2.117.2.js',root));
 
@@ -36,6 +37,19 @@ assert.match(validation,/new resource policies installed/i);
 assert.match(hardeningValidation,/resource-files/i);
 assert.match(backend,/role==='author'\?`authors\/\$\{user\.id\}\/`:''/);
 assert.match(backend,/if\(file\.type&&file\.type!==contentType/);
+
+for(const required of [
+  'security invoker',
+  'profile updates by owner or admin',
+  'profiles_role_guard',
+  'guard_profile_role_update',
+  'admins review author requests',
+  'admins write role audit',
+  'grant update(role)',
+  'grant update(status,reviewed_at,reviewed_by,review_note)',
+  'grant insert(actor_id,subject_id,old_role,new_role)'
+])assert(invokerRpc.toLowerCase().includes(required),`admin RPC hardening includes ${required}`);
+for(const name of ['admin_set_author','admin_review_author_request'])assert(new RegExp(`function public\\.${name}[\\s\\S]{0,220}security invoker`,'i').test(invokerRpc),`${name} remains a public SECURITY INVOKER RPC`);
 
 for(const path of ['api/article.js','api/articles.js','api/sitemap.js','api/health.js']){
   const source=read(path);

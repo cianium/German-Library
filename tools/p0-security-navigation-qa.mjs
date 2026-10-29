@@ -4,6 +4,7 @@ import {desktopNav, mobileMenu, mobileBottomNav} from '../server/article-navigat
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const source=read('../backend/migrations/20261014_vnext_articles.sql');
 const fix=read('../backend/migrations/20261015_p0_article_source_read_access.sql');
+const publications=read('../backend/migrations/20261029_v34_public_article_snapshots.sql');
 const original=source.match(/create policy "authenticated article access"[\s\S]*?\n\);/i);
 assert(original?.[0].includes('published_snapshot is not null'),'regression reproduces the old public-snapshot read issue');
 assert.match(fix,/drop policy if exists "authenticated article access" on public\.articles/i);
@@ -20,6 +21,14 @@ assert.match(source,/create or replace view public\.published_articles with \(se
 assert.match(source,/published_snapshot->>\s*'title'/);
 assert.match(source,/where published_snapshot is not null and status<>'archived'/);
 assert.match(source,/grant select on public\.published_articles to anon,authenticated/);
+assert.match(publications,/create table if not exists public\.article_publications/i);
+assert.match(publications,/create table if not exists public\.article_public_redirects/i);
+assert.match(publications,/alter table public\.article_publications enable row level security/i);
+assert.match(publications,/with \(security_barrier=true,security_invoker=true\)/i);
+assert.match(publications,/from public\.article_publications/i);
+assert.match(publications,/from public\.article_public_redirects/i);
+assert.match(publications,/revoke all on function private\.sync_article_publication\(\)/i);
+assert.doesNotMatch(publications,/grant select on (table )?public\.articles to anon/i);
 // This gate validates the effective intended access matrix, not a live DB session.
 const canReadRaw=(actor,article)=>actor.role==='editor'||actor.role==='admin'||(actor.role==='author'&&actor.id===article.authorId);
 for(const status of ['draft','in_review','published','needs_changes','archived']){

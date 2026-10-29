@@ -9,6 +9,8 @@ window.GL_CONFIG={
   supabasePublishableKey:"",
   // Deprecated compatibility only; prefer supabasePublishableKey.
   supabaseAnonKey:"",
+  instagramUrl:"https://instagram.com/lexipfad",
+  telegramUrl:"https://t.me/lexipfad",
   syncDebounceMs:350,
   maxUploadBytes:262144000
 };
