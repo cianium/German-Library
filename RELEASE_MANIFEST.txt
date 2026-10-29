@@ -2,4 +2,5 @@ Lexipfad v3.3.0 production candidate
 Based on: v3.2.1 P0 source preview (derived from V7.4)
 Mobile navigation, Author/Admin workspaces, API and supply-chain hardening
 Latest migration: backend/migrations/20261028_v33_production_hardening.sql
-Live RLS and deployment evidence must be recorded during rollout
+Supabase v33 migration validated live; Vercel environment synchronized
+Role-matrix and public-production HTTP verification remain rollout gates

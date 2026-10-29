@@ -6,6 +6,14 @@
 
 سورس فعلی یک **Production Candidate** است: build، تست‌های امنیتی/ساختاری و تست‌های مرورگر محلی پاس شده‌اند. این عبارت به معنی انتشار زنده نیست. تا زمانی که migration روی Staging اعمال، RLS با حساب‌های واقعی آزمایش و Preview واقعی Vercel تأیید نشود، وضعیت انتشار **Blocked** باقی می‌ماند.
 
+## شواهد Rollout — ۲۹ اکتبر ۲۰۲۶
+
+- migration با نام `v33_production_hardening` روی پروژه Supabase ثبت شد.
+- validation زنده تأیید کرد bucket `resource-files` خصوصی و MIME-scoped است و هر ۷ ایندکس FK وجود دارند.
+- هشدارهای `unindexed_foreign_keys` از Advisor حذف شدند؛ هشدارهای accepted/operational در انتهای این گزارش باقی مانده‌اند.
+- متغیرهای `SUPABASE_URL` و `SUPABASE_PUBLISHABLE_KEY` مستقیماً از پروژه Supabase با Vercel همگام شدند؛ `SITE_URL` برای Preview و Production روی `https://lexipfad.vercel.app` است.
+- Preview مربوط به commit `57b92a6` در Vercel با وضعیت `READY` ساخته شد. تست HTTP خودکار Preview به‌علت Vercel Authentication و نبود مجوز ساخت bypass در Connector انجام نشد؛ تست عمومی نهایی باید پس از انتشار Production اجرا شود.
+
 ## Hardening انجام‌شده
 
 - Supabase JS نسخه `2.117.2` دقیقاً در lockfile قفل و از همان origin سرو می‌شود؛ وابستگی اجرایی به CDN حذف شد.
@@ -34,12 +42,18 @@
 
 ## گیت‌های باز پیش از Go-live
 
-- اجرای migration و تست RLS روی Supabase زنده؛ نتیجه باید در گزارش Rollout ثبت شود.
-- Preview/Promotion واقعی Vercel و آزمون دامنه، HTTPS، headerها و health؛ نتیجه باید در گزارش Rollout ثبت شود.
+- تست نقش‌های واقعی RLS با حساب‌های learner/author/editor؛ validation ساختاری زنده پاس شده اما credential حساب‌های تست در این نشست موجود نبود.
+- آزمون دامنه، HTTPS، headerها و health روی Production عمومی؛ Preview محافظت‌شده بود.
 - تنظیم SMTP/CAPTCHA/Redirect URL و سناریوی بازیابی حساب در Supabase Auth.
 - تعریف WAF/rate limit و alert برای خطای Function و failure health.
 - اگر Authorهای غیرقابل‌اعتماد اجازه upload فایل عمومی خواهند داشت، اسکن malware/magic-byte پیش از Publish لازم است. کنترل MIME فعلی جای اسکن محتوا را نمی‌گیرد.
 - ممیزی حقوق نشر و هزینه/سهمیه Storage برای فایل‌های تا ۲۵۰ MiB.
+
+## هشدارهای پذیرفته‌شده یا عملیاتی Supabase
+
+- `published_articles` و `article_redirects` عمداً فقط snapshot عمومی/redirect منتشرشده را از View ارائه می‌کنند. تغییر کورکورانه آن‌ها به `security_invoker` دسترسی عمومی SSR را می‌شکند؛ این طراحی باید در ممیزی بعدی با تست role-matrix بازبینی شود.
+- RPCهای `admin_set_author` و `admin_review_author_request` عمداً برای `authenticated` قابل فراخوانی‌اند، اما داخل Function هم `auth.uid()` و هم `private.can_manage_roles()` را بررسی می‌کنند. این دو هشدار Advisor accepted هستند و باید با تست منفی کاربر عادی پایش شوند.
+- Leaked Password Protection همچنان در Supabase Auth خاموش است و باید از Dashboard فعال شود: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 
 ## Rollback
 
