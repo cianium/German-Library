@@ -1,5 +1,5 @@
-German Library v3.2.1-p0-preview
-Based on: v3.2.0 Mobile Article Studio Preview (derived from V7.4)
-Source-only P0 patch; not deployed
-Mandatory after vNext article migration: backend/migrations/20261015_p0_article_source_read_access.sql
-Live RLS/role test pending; see docs/P0_SECURITY_AND_NAV_REPORT_FA.md
+Lexipfad v3.3.0 production candidate
+Based on: v3.2.1 P0 source preview (derived from V7.4)
+Mobile navigation, Author/Admin workspaces, API and supply-chain hardening
+Latest migration: backend/migrations/20261028_v33_production_hardening.sql
+Live RLS and deployment evidence must be recorded during rollout

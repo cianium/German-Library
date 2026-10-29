@@ -1,8 +1,8 @@
+node_modules/
+dist/
+.vercel/
 .env
 .env.*
 !.env.example
-dist/
-.vercel/
-.DS_Store
-*.log
-*.bak
+playwright-report/
+test-results/

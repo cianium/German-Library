@@ -33,12 +33,12 @@ const navTags=(markup,klass)=>markup.match(new RegExp(`<nav class="${klass}"[^>]
 for(const [name,markup] of [['desktop',desktopNav()],['mobile',mobileBottomNav()]]){
   const inner=navTags(markup,name==='desktop'?'desktop-nav':'mobile-bottom-nav');
   const hrefs=[...inner.matchAll(/<a\s+href="([^"]+)"/g)].map(x=>x[1]);
-  assert.deepEqual(hrefs,['/levels.html','/media.html','/','/books.html'],`${name} SSR destinations exactly match V7.5`);
-  assert(!inner.includes('href="/articles"'),`${name} excludes articles as a fifth primary destination`);
+  assert.deepEqual(hrefs,['/','/levels.html','/books.html','/media.html','/articles'],`${name} SSR destinations exactly match v3.3`);
+  assert(inner.includes('href="/articles"'),`${name} includes articles as fifth primary destination`);
   assert.equal((inner.match(/aria-current="page"/g)||[]).length,1,`${name} only has one active destination`);
 }
-assert(mobileMenu().includes('href="/articles"'),'article discovery kept in secondary menu');
+assert.equal((mobileMenu().match(/href="\/articles"/g)||[]).length,1,'article appears exactly once in the secondary menu');
 assert(mobileMenu().includes('aria-label="باز کردن منو"'),'secondary menu accessible label');
-assert(read('../assets/site-ui.js').includes("[['levels.html','levels','سطح'],['media.html','media','مکمل'],['index.html','home','خانه'],['books.html','library','کتابخانه']]"),'SSR matches main four destinations');
+assert(read('../assets/site-ui.js').includes("[['index.html','home','خانه'],['levels.html','levels','سطوح'],['books.html','library','کتابخانه'],['media.html','media','رسانه'],['articles','articles','مقالات']]"),'SSR matches the five approved primary destinations');
 assert(read('../api/article.js').includes('if(!String(s||\'\').trim())return \'\';'),'empty URLs cannot silently resolve to homepage');
-console.log('P0 QA: article source access policy, intended role matrix, shared four-item SSR nav, valid URL fallback PASS');
+console.log('P0 QA: article source access policy, intended role matrix, shared five-item SSR nav, valid URL fallback PASS');

@@ -7,18 +7,18 @@
 **Lexipfad — a mobile-first German learning path and resource library for CEFR A1–C2.**
 
 [![Source QA and Build](https://github.com/cianium/German-Library/actions/workflows/ci.yml/badge.svg)](https://github.com/cianium/German-Library/actions/workflows/ci.yml)
-![Status](https://img.shields.io/badge/Status-Development%20Preview-E5A50A)
-![Version](https://img.shields.io/badge/Source-3.2.1--p0--preview-147D8B)
+![Status](https://img.shields.io/badge/Status-Production%20Candidate-E5A50A)
+![Version](https://img.shields.io/badge/Source-3.3.0--production--candidate-147D8B)
 
 **Books & learning resources · Articles · Content management · Multi-device experience**
 
 </div>
 
-> **Release status:** This repository is currently a **source/preview build**, not a verified production release. The P0 article-access SQL patch exists in source, but its application to any real Supabase database and live role-based access verification are **not confirmed**. Do not use a passing CI run as evidence that deployed database permissions are secure.
+> **Release status:** v3.3 is a tested **production candidate**. Source QA, security regression tests, build/dist checks, and Chromium suites pass locally. Live Supabase migration validation and Vercel preview/production verification remain separate release gates and are recorded during rollout.
 
 ## What this project does
 
-German Library helps German learners find curated learning materials by **CEFR level (A1–C2)**, book category, and learning objective. The codebase includes a browser-first catalog, content-management interfaces, an article authoring workflow, and Vercel server-rendered article endpoints.
+Lexipfad helps German learners find curated learning materials by **CEFR level (A1–C2)**, book category, and learning objective. The codebase includes a browser-first catalog, content-management interfaces, an article authoring workflow, and Vercel server-rendered article endpoints.
 
 | Area | Included in source | Important boundary |
 | :--- | :--- | :--- |
@@ -33,12 +33,12 @@ German Library helps German learners find curated learning materials by **CEFR l
 - **Frontend:** HTML, CSS and JavaScript (mobile-first).
 - **Server-rendered articles:** Vercel Functions and server-side navigation.
 - **Backend services (when configured):** Supabase Auth, PostgreSQL/RLS and private Storage.
-- **Build and QA:** Node.js (20+) and Python 3.
+- **Build and QA:** Node.js 22+ and Python 3.
 - **Deployment configuration:** `vercel.json`, with a separate static GitHub Pages deployment history.
 
 ## Run locally (source preview)
 
-Requirements: Node.js 20+ and Python 3.
+Requirements: Node.js 22+ and Python 3.
 
 ```bash
 git clone https://github.com/cianium/German-Library.git
@@ -112,7 +112,7 @@ Do not apply a patch blindly to Production. Back up data, check migration histor
 
 ## Versioning and historical releases
 
-The current `package.json` source version is **`3.2.1-p0-preview`**. GitHub also contains an older release **titled `v7.1.1` with tag `v1.1.1`**. Those identifiers refer to different versioning contexts; the old tag must not be silently moved or rewritten.
+The current `package.json` source version is **`3.3.0-production-candidate`**. The immediate pre-v3.3 snapshot is preserved as GitHub release/tag **`v3.2.1-p0-preview`**. Older historical tags are not moved or rewritten.
 
 Read the [Changelog](CHANGELOG.md) and [GitHub Releases and publishing policy](docs/RELEASES.md). A CI-green badge does **not** mean the project is production-ready.
 

@@ -2,9 +2,11 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import re
+import shutil
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=Path('/mnt/data')
+OUT=ROOT/'docs'/'screenshots'
+OUT.mkdir(parents=True,exist_ok=True)
 
 def html(name):
     doc=(ROOT/name).read_text()
@@ -14,7 +16,7 @@ def html(name):
 
 errors=[]
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
+    browser=p.chromium.launch(executable_path=shutil.which('chromium'),args=['--no-sandbox','--disable-dev-shm-usage'])
     page=browser.new_page(viewport={'width':390,'height':844});page.set_default_timeout(3500)
     page.on('pageerror',lambda error:errors.append(str(error)))
     page.set_content(html('article-studio.html'),wait_until='domcontentloaded')
@@ -25,6 +27,8 @@ window.GLBackend={refreshAuth:async()=>({user:{id:'writer-1',email:'writer@demo.
 ''')
     page.add_script_tag(content=(ROOT/'assets/article-studio.js').read_text())
     page.locator('#newArticle').click()
+    assert page.locator('body').evaluate("el=>el.classList.contains('studio-editor-open')")
+    assert page.locator('#studioMobileNav').is_hidden()
     page.locator('#articleTitle').fill('Deutsche Grammatik B1 für Lernende')
     body=page.locator('#articleBody')
     body.fill('Ein Einführungstext zur deutschen Grammatik.')
@@ -78,6 +82,7 @@ window.GLBackend={refreshAuth:async()=>({user:{id:'writer-1',email:'writer@demo.
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'),f'horizontal overflow in editor at {width}'
     page.set_viewport_size({'width':390,'height':844})
     page.locator('#studioTabWrite').click()
+    assert page.locator('.studio-top-actions').is_visible()
     page.screenshot(path=str(OUT/'GL-vnext-article-studio.png'),full_page=True)
     browser.close()
 assert not errors,errors

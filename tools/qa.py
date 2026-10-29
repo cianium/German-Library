@@ -58,8 +58,10 @@ for f in sorted(ROOT.glob('*.html')):
                 errors.append(f'{f.name}: inline script {i} syntax error: {detail}')
         finally:
             Path(tmp_path).unlink(missing_ok=True)
-    if 'assets/backend.js' in text and '@supabase/supabase-js@2.117.2' not in text:
-        errors.append(f'{f.name}: expected exact Supabase SDK pin 2.117.2')
+    if 'assets/backend.js' in text and 'assets/vendor/supabase-js-2.117.2.js' not in text:
+        errors.append(f'{f.name}: expected self-hosted exact Supabase SDK 2.117.2')
+    if 'cdn.jsdelivr.net' in text:
+        errors.append(f'{f.name}: production HTML must not execute CDN JavaScript')
 
 for js in sorted(list((ROOT/'assets').glob('*.js'))+list((ROOT/'scripts').glob('*.mjs'))+list((ROOT/'tools').glob('*.mjs'))):
     q=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
@@ -77,7 +79,7 @@ if 'supabasePublishableKey' not in cfg: errors.append('assets/runtime-config.js:
 manifest=json.loads((ROOT/'site.webmanifest').read_text(encoding='utf-8'))
 if manifest.get('display')!='standalone': warnings.append('site.webmanifest: display is not standalone')
 
-for required in ['README.md','backend/supabase-schema.sql','backend/seed.sql','docs/SUPABASE_SETUP.md','vercel.json','_headers']:
+for required in ['README.md','backend/supabase-schema.sql','backend/seed.sql','backend/migrations/20261027_s1_author_resource_ownership.sql','backend/validation/s1_author_ownership_check.sql','backend/migrations/20261028_v33_production_hardening.sql','backend/validation/v33_production_hardening_check.sql','docs/SUPABASE_SETUP.md','vercel.json','_headers','assets/vendor/supabase-js-2.117.2.js','package-lock.json']:
     if not (ROOT/required).exists(): errors.append(f'missing release file: {required}')
 
 print(f'Static QA: {len(errors)} error(s), {len(warnings)} warning(s)')
