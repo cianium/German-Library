@@ -1,6 +1,7 @@
 """Chromium layout smoke test for SSR articles with mocked REST output; no live Supabase."""
 import json
 import subprocess
+import shutil
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -10,7 +11,7 @@ fixtures=json.loads(output)
 css=(ROOT/'assets/styles.css').read_text()
 errors=[]
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
+    browser=p.chromium.launch(executable_path=shutil.which('chromium'),args=['--no-sandbox','--disable-dev-shm-usage'])
     page=browser.new_page(viewport={'width':390,'height':844})
     page.on('pageerror',lambda err:errors.append(str(err)))
     for name,html in fixtures.items():
@@ -19,7 +20,7 @@ with sync_playwright() as p:
         page.set_content(html,wait_until='domcontentloaded')
         assert page.locator('h1').count()==1,f'{name}: one h1'
         for nav_class in ('desktop-nav','mobile-bottom-nav'):
-            assert page.locator(f'nav.{nav_class} > a').count()==4,f'{name}: {nav_class} must have four links'
+            assert page.locator(f'nav.{nav_class} > a').count()==5,f'{name}: {nav_class} must have five links'
         assert page.locator('nav.mobile-menu-panel a[href="/articles"]').count()==1,f'{name}: articles discoverable in menu'
         assert page.locator('nav.mobile-bottom-nav a.active').count()==1,f'{name}: active tab unique'
         for width in (320,390,768,1024):
@@ -35,4 +36,4 @@ with sync_playwright() as p:
         page.locator('details.mobile-menu summary').click()
     browser.close()
 assert not errors,errors
-print('P0 SSR Chromium QA PASS: article index/detail, primary nav 4, secondary link, 320/390/768/1024, no overflow/menu interaction')
+print('P0 SSR Chromium QA PASS: article index/detail, primary nav 5, secondary link, 320/390/768/1024, no overflow/menu interaction')

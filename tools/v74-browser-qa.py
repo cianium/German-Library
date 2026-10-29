@@ -3,6 +3,7 @@ No live backend/network claims. Run: python tools/v74-browser-qa.py"""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import re
+import shutil
 ROOT=Path(__file__).resolve().parent.parent
 errors=[];counts=0
 STORE_JS='''<script>window.__glDemoStore=window.__glDemoStore||{};Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>Object.prototype.hasOwnProperty.call(window.__glDemoStore,k)?window.__glDemoStore[k]:null,setItem:(k,v)=>window.__glDemoStore[k]=String(v),removeItem:k=>delete window.__glDemoStore[k]}});try{history.replaceState=()=>{}}catch(e){}</script>'''
@@ -19,7 +20,7 @@ def markup(name):
  s=s.replace('<body>','<body>'+STORE_JS,1)
  return s
 with sync_playwright() as pw:
- browser=pw.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
+ browser=pw.chromium.launch(executable_path=shutil.which('chromium'),args=['--no-sandbox','--disable-dev-shm-usage'])
  page=browser.new_page(viewport={'width':390,'height':844});page.set_default_timeout(3500)
  page.on('pageerror',lambda err:errors.append(str(err)))
  for width in [320,375,390,560,768,900,1024,1280]:
@@ -58,14 +59,14 @@ with sync_playwright() as pw:
  page.set_content(markup('special.html'));page.wait_for_timeout(100)
  assert page.get_by_text('Test Film').count()>=1,'Featured media displayed'
  page.set_content(markup('admin.html'));page.wait_for_timeout(100)
- page.locator('.admin-mobile-nav [data-tab="courses"]').click();page.locator('#addCourse').click()
- assert page.locator('#courseForm [name="collection"]').input_value()=='library'
+ page.locator('.admin-mobile-nav [data-tab="courses"]').click();page.wait_for_timeout(100);page.locator('#addCourse').click()
+ assert page.locator('#courseForm').is_visible(),'Add book form visible'
  page.locator('#courseForm [name="title"]').fill('Book without CEFR')
  page.locator('#courseForm [name="status"]').select_option('published')
  page.locator('#courseForm [name="featured"]').select_option('true')
  page.locator('#courseForm button[type="submit"]').click()
  book=page.evaluate('GL.getContent().courses.find(c=>c.title==="Book without CEFR")')
- assert book and book['level']=='' and book['featured'],book
+ assert book and book['collection']=='library' and book['level']=='' and book['featured'],book
  page.locator('.admin-mobile-nav [data-tab="overview"]').click();page.locator('[data-quick="levels"]').click()
  page.locator('#levelsAdminList [data-action="edit-level"][data-id="B1"]').click()
  page.locator('#levelForm [name="description"]').fill('Edited level B1')
