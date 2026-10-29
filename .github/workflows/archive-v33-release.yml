@@ -1,0 +1,25 @@
+name: Archive Lexipfad v3.3 before v3.4
+on:
+  push:
+    branches:
+      - backup/lexipfad-v3.3-before-v3.4-20261030
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release_previous_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish v3.3 backup release at exact original main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG="v3.3.0-pre-v3.4"
+          SHA="d2cba9434fe6f0369f366f2d059161a6db24c0ee"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists: $TAG"
+          else
+            gh release create "$TAG" --target "$SHA" --title "Lexipfad v3.3 - backup before v3.4" --notes "Archive of the last production candidate (commit $SHA) before the Lexipfad v3.4.0 source replacement. Source preserved for rollback. Supabase schema/data are separate and not included." --prerelease
+          fi
